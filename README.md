@@ -40,6 +40,12 @@ Offizieller Startpunkt:
 - Erst die GPT-Phase vollständig abschließen
 - Danach die strukturierte Übergabe an den Agent
 
+### Dokumentation im Repository
+
+- **`docs/`** – dauerhafte Projektdokumentation  
+- **`prompts/`** – operative Startprompts (siehe oben)  
+- **`meta/`** – Goldstandard-Systemdokumentation (z. B. [Prompt Index](meta/prompt-index.md))  
+
 ---
 
 Dieses Projekt basiert auf dem Goldstandard Template.

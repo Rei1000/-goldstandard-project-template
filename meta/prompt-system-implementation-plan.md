@@ -175,8 +175,8 @@ git status --short
 Erwartung:
 
 - genau eine neue Datei:
-  docs/prompt-system-implementation-plan.md
-- keine Änderungen außerhalb von docs/
+  meta/prompt-system-implementation-plan.md
+- keine Änderungen außerhalb von meta/
 - nichts gestaged
 - kein Commit
 
