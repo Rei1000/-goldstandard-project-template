@@ -55,10 +55,10 @@ Diese Bestandteile sollen unverändert in neue Projekte übernommen werden:
 - .github/PULL_REQUEST_TEMPLATE.md
 - .github/ISSUE_TEMPLATE/feature.md
 - .github/workflows/ci.yml
-- docs/github-setup-checklist.md
-- docs/goldstandard-template-plan.md
+- meta/github-setup-checklist.md
+- meta/goldstandard-template-plan.md
 - docs/master-start-prompt.md
-- docs/bootstrap-system-plan.md
+- meta/bootstrap-system-plan.md
 
 ---
 
@@ -185,7 +185,7 @@ Auf Basis dieser Spezifikation können später erstellt werden:
 ## 6. Abschlussprüfung
 
 - Es existiert genau eine neue Datei:
-  docs/template-repository-spec.md
+  meta/template-repository-spec.md
 - Keine bestehenden Dateien wurden verändert
 - Arbeitsverzeichnis ist sauber
 

@@ -77,8 +77,8 @@ Erstelle oder übernehme im neuen Projekt:
 - docs/architecture.md
 - docs/pflichtenheft.md
 - docs/datenbankmodell.md
-- docs/github-setup-checklist.md
-- docs/goldstandard-template-plan.md
+- meta/github-setup-checklist.md
+- meta/goldstandard-template-plan.md
 
 Falls fachliche Inhalte noch nicht vollständig vorliegen:
 - Platzhalter mit klarer Kennzeichnung anlegen

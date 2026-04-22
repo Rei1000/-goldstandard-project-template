@@ -153,7 +153,7 @@ Ein skalierbares System zur Projekterstellung mit:
 ## 6. Abschlussprüfung
 
 - Es existiert genau eine neue Datei:
-  docs/bootstrap-system-plan.md
+  meta/bootstrap-system-plan.md
 - Keine bestehenden Dateien wurden verändert
 - Arbeitsverzeichnis ist sauber
 
