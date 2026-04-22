@@ -6,30 +6,32 @@ Dieses Repository ist ein Goldstandard-Template für neue Softwareprojekte.
 
 Der Projektstart erfolgt **geführt** und in zwei Phasen:
 
-1. **GPT-Phase** – Projekt verstehen, definieren und strukturieren
-2. **Agent-Phase** – Dokumente und Projektstruktur im Repository umsetzen
-
-### Offizieller Startpunkt
-
-Der verpflichtende erste Prompt für jedes neue Projekt ist:
-
-`prompts/gpt/01-gpt-project-start.md`
+1. **GPT-Phase** – Denken, Strukturieren und Definieren  
+2. **Agent-Phase** – Umsetzung im Repository (Dokumente, Struktur, Git)
 
 ### Verbindliche Reihenfolge
 
+Öffne die Prompts **in der angegebenen Reihenfolge**. Zuerst immer die komplette GPT-Liste, danach die Agent-Liste.
+
 #### Phase 1 – GPT
 
-1. `prompts/gpt/01-gpt-project-start.md`
-2. `prompts/gpt/02-gpt-project-definition.md`
-3. `prompts/gpt/03-gpt-usecase-definition.md`
-4. `prompts/gpt/04-gpt-pflichtenheft-prep.md`
+Offizieller Startpunkt:
+
+👉 [prompts/gpt/01-gpt-project-start.md](prompts/gpt/01-gpt-project-start.md)
+
+1. [01 – Project Start](prompts/gpt/01-gpt-project-start.md)  
+2. [02 – Project Definition](prompts/gpt/02-gpt-project-definition.md)  
+3. [03 – Use Case Definition](prompts/gpt/03-gpt-usecase-definition.md)  
+4. [04 – Pflichtenheft Preparation](prompts/gpt/04-gpt-pflichtenheft-prep.md)  
+
+---
 
 #### Phase 2 – Agent
 
-1. `prompts/agent/01-agent-project-bootstrap.md`
-2. `prompts/agent/02-agent-write-pflichtenheft.md`
-3. `prompts/agent/03-agent-architecture-setup.md`
-4. `prompts/agent/04-agent-project-structure.md`
+1. [01 – Project Bootstrap](prompts/agent/01-agent-project-bootstrap.md)  
+2. [02 – Write Pflichtenheft](prompts/agent/02-agent-write-pflichtenheft.md)  
+3. [03 – Architecture Setup](prompts/agent/03-agent-architecture-setup.md)  
+4. [04 – Project Structure](prompts/agent/04-agent-project-structure.md)  
 
 ### Wichtig
 
