@@ -33,14 +33,14 @@ Sie legt fest:
 
 ---
 
-## 3. docs/
+## 3. docs/ und meta/
 
 | Pfad | Typ | Status | Beschreibung |
 |------|-----|--------|-------------|
-| docs/github-setup-checklist.md | Datei | Übernehmen | Setup-Anleitung |
+| meta/github-setup-checklist.md | Datei | Übernehmen | Setup-Anleitung |
 | docs/master-start-prompt.md | Datei | Übernehmen | Agent Startpunkt |
-| docs/bootstrap-system-plan.md | Datei | Übernehmen | Systemarchitektur |
-| docs/template-repository-spec.md | Datei | Übernehmen | Template Definition |
+| meta/bootstrap-system-plan.md | Datei | Übernehmen | Systemarchitektur |
+| meta/template-repository-spec.md | Datei | Übernehmen | Template Definition |
 | docs/project-scope.md | Datei | Platzhalter | Projektspezifische Anforderungen |
 
 ---
@@ -110,7 +110,7 @@ Das Template-Repository ist:
 - git status prüfen
 → Es darf nur diese Datei neu sein:
 
-docs/template-repository-file-map.md
+meta/template-repository-file-map.md
 
 - KEIN Commit
 - KEIN Push
