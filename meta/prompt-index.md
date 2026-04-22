@@ -263,8 +263,8 @@ git status --short
 Erwartung:
 
 - genau eine neue Datei:
-  docs/prompt-index.md
-- keine Änderungen außerhalb von docs/
+  meta/prompt-index.md
+- keine Änderungen außerhalb von meta/
 - nichts gestaged
 - kein Commit
 

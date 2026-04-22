@@ -199,8 +199,8 @@ git status --short
 Erwartung:
 
 - genau eine neue Datei:
-  docs/artifact-lifecycle.md
-- keine Änderungen außerhalb von docs/
+  meta/artifact-lifecycle.md
+- keine Änderungen außerhalb von meta/
 - nichts gestaged
 - kein Commit
 

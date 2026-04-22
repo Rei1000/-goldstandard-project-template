@@ -230,8 +230,8 @@ git status --short
 Erwartung:
 
 - genau eine neue Datei:
-  docs/project-start-flow.md
-- keine Änderungen außerhalb von docs/
+  meta/project-start-flow.md
+- keine Änderungen außerhalb von meta/
 - nichts gestaged
 - kein Commit
 

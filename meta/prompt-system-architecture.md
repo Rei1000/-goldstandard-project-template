@@ -207,8 +207,8 @@ git status --short
 Erwartung:
 
 - genau eine neue Datei:
-  docs/prompt-system-architecture.md
-- keine Änderungen außerhalb von docs/
+  meta/prompt-system-architecture.md
+- keine Änderungen außerhalb von meta/
 - nichts gestaged
 - kein Commit
 

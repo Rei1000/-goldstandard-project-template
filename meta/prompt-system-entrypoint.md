@@ -108,8 +108,8 @@ git status --short
 Erwartung:
 
 - genau eine neue Datei:
-  docs/prompt-system-entrypoint.md
-- keine Änderungen außerhalb von docs/
+  meta/prompt-system-entrypoint.md
+- keine Änderungen außerhalb von meta/
 - nichts gestaged
 - kein Commit
 

@@ -13,9 +13,9 @@ Ziel ist es:
 
 ## Ausgangslage
 
-Aktuell befinden sich sowohl Projektdokumentation als auch Goldstandard-/Systemdokumentation unter `docs/`.
+Projektdokumentation liegt unter `docs/`. Goldstandard-/Systemdokumentation liegt unter `meta/`.
 
-Dadurch liegen dort gemeinsam:
+Übersicht:
 
 ### Projektdokumentation
 - `docs/pflichtenheft.md`
@@ -25,14 +25,15 @@ Dadurch liegen dort gemeinsam:
 - `docs/datenbankmodell.md`
 
 ### Meta-/Systemdokumentation
-- `docs/prompt-system-implementation-plan.md`
-- `docs/prompt-system-architecture.md`
-- `docs/project-start-flow.md`
-- `docs/prompt-system-entrypoint.md`
-- `docs/prompt-index.md`
-- `docs/artifact-lifecycle.md`
+- `meta/prompt-system-implementation-plan.md`
+- `meta/prompt-system-architecture.md`
+- `meta/project-start-flow.md`
+- `meta/prompt-system-entrypoint.md`
+- `meta/prompt-index.md`
+- `meta/artifact-lifecycle.md`
+- `meta/meta-migration-plan.md`
 
-Diese Mischung ist für reale Projekte langfristig nicht ideal.
+Die Trennung folgt diesem Migrationsplan.
 
 ---
 
@@ -60,6 +61,7 @@ Dazu gehören künftig:
 - `meta/prompt-system-entrypoint.md`
 - `meta/prompt-index.md`
 - `meta/artifact-lifecycle.md`
+- `meta/meta-migration-plan.md`
 
 ---
 
@@ -67,12 +69,13 @@ Dazu gehören künftig:
 
 ### Von docs/ nach meta/ verschieben
 
-- `docs/prompt-system-implementation-plan.md`
-- `docs/prompt-system-architecture.md`
-- `docs/project-start-flow.md`
-- `docs/prompt-system-entrypoint.md`
-- `docs/prompt-index.md`
-- `docs/artifact-lifecycle.md`
+- `meta/prompt-system-implementation-plan.md`
+- `meta/prompt-system-architecture.md`
+- `meta/project-start-flow.md`
+- `meta/prompt-system-entrypoint.md`
+- `meta/prompt-index.md`
+- `meta/artifact-lifecycle.md`
+- `meta/meta-migration-plan.md`
 
 ### In docs/ belassen
 
@@ -171,8 +174,8 @@ git status --short
 Erwartung:
 
 - genau eine neue Datei:
-  docs/meta-migration-plan.md
-- keine Änderungen außerhalb von docs/
+  meta/meta-migration-plan.md
+- keine Änderungen außerhalb von meta/
 - nichts gestaged
 - kein Commit
 
