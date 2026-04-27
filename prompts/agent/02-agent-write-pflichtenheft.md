@@ -1,5 +1,16 @@
 # 02 – Agent Write Pflichtenheft
 
+## Pflicht: Agent Task Frame
+
+Vor Ausführung dieses Prompts MUSS der Agent den vollständigen Arbeitsrahmen anwenden:
+
+prompts/agent/00-agent-task-frame.md
+
+Dieser Prompt darf NICHT ausgeführt werden, wenn der Task Frame nicht vorher vollständig abgearbeitet wurde.
+
+---
+
+
 ## Ziel
 
 Dieser Prompt überführt die Ergebnisse der GPT-Phase in ein konkretes Pflichtenheft im Repository.
