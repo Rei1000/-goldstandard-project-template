@@ -40,6 +40,16 @@ Offizieller Startpunkt:
 - Erst die GPT-Phase vollständig abschließen
 - Danach die strukturierte Übergabe an den Agent
 
+## CLI Wizard (empfohlen)
+
+Du kannst den Goldstandard-Prozess auch über die CLI starten:
+
+```bash
+node cli/index.js
+```
+
+Die CLI führt dich durch den gleichen Prompt-Flow (GPT → Agent) und hilft bei der strukturierten Übergabe.
+
 ### Dokumentation im Repository
 
 - **`docs/`** – dauerhafte Projektdokumentation  
