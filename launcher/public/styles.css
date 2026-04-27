@@ -142,6 +142,83 @@ button:hover {
   color: #334e68;
 }
 
+.wizard-card {
+  border-left: 4px solid #64748b;
+}
+
+.wizard-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.step-counter {
+  margin: 0;
+  color: #334e68;
+  font-weight: 600;
+}
+
+.phase-badge {
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid transparent;
+}
+
+.phase-badge.gpt {
+  background: #ecfeff;
+  color: #0e7490;
+  border-color: #a5f3fc;
+}
+
+.phase-badge.agent {
+  background: #eef2ff;
+  color: #4338ca;
+  border-color: #c7d2fe;
+}
+
+.step-hint {
+  margin-top: 0;
+  color: #486581;
+}
+
+.progress-track {
+  display: grid;
+  grid-template-columns: repeat(9, minmax(0, 1fr));
+  gap: 6px;
+  margin: 12px 0 14px;
+}
+
+.progress-step {
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  text-align: center;
+  font-size: 12px;
+  padding: 6px 0;
+  background: #f8fafc;
+  color: #334155;
+}
+
+.progress-step.active {
+  border-color: #2563eb;
+  background: #dbeafe;
+  color: #1e3a8a;
+  font-weight: 700;
+}
+
+.progress-step.done {
+  border-color: #16a34a;
+  background: #dcfce7;
+  color: #166534;
+  font-weight: 600;
+}
+
+.nav-row {
+  flex-wrap: wrap;
+}
+
 @media (max-width: 900px) {
   .grid {
     grid-template-columns: 1fr;

@@ -9,6 +9,7 @@ const REPO_ROOT = path.join(__dirname, "..");
 const PUBLIC_DIR = path.join(__dirname, "public");
 const CONTEXT_DIR = path.join(REPO_ROOT, ".goldstandard");
 const CONTEXT_FILE = path.join(CONTEXT_DIR, "context.txt");
+const PROGRESS_FILE = path.join(CONTEXT_DIR, "progress.json");
 
 const PORT = 3000;
 
@@ -89,6 +90,13 @@ function serveStatic(reqPath, res) {
   sendText(res, 200, content, contentType);
 }
 
+function defaultProgress() {
+  return {
+    currentStep: 0,
+    completedSteps: []
+  };
+}
+
 const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, `http://${req.headers.host}`);
@@ -159,6 +167,48 @@ const server = http.createServer(async (req, res) => {
       const content = typeof parsed.content === "string" ? parsed.content : "";
       fs.mkdirSync(CONTEXT_DIR, { recursive: true });
       fs.writeFileSync(CONTEXT_FILE, content, "utf8");
+      sendJson(res, 200, { ok: true });
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/progress") {
+      if (!fs.existsSync(PROGRESS_FILE)) {
+        sendJson(res, 200, defaultProgress());
+        return;
+      }
+
+      try {
+        const raw = fs.readFileSync(PROGRESS_FILE, "utf8");
+        const parsed = JSON.parse(raw);
+        sendJson(res, 200, {
+          currentStep: Number.isInteger(parsed.currentStep) ? parsed.currentStep : 0,
+          completedSteps: Array.isArray(parsed.completedSteps) ? parsed.completedSteps : []
+        });
+      } catch {
+        sendJson(res, 200, defaultProgress());
+      }
+      return;
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/progress") {
+      const rawBody = await readBody(req);
+      let parsed = {};
+      try {
+        parsed = JSON.parse(rawBody || "{}");
+      } catch {
+        sendJson(res, 400, { error: "Ungültiges JSON." });
+        return;
+      }
+
+      const payload = {
+        currentStep: Number.isInteger(parsed.currentStep) ? parsed.currentStep : 0,
+        completedSteps: Array.isArray(parsed.completedSteps)
+          ? parsed.completedSteps.filter((v) => Number.isInteger(v))
+          : []
+      };
+
+      fs.mkdirSync(CONTEXT_DIR, { recursive: true });
+      fs.writeFileSync(PROGRESS_FILE, JSON.stringify(payload, null, 2), "utf8");
       sendJson(res, 200, { ok: true });
       return;
     }
