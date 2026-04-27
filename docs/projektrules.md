@@ -2,6 +2,24 @@
 
 Dieses Dokument ist ein **Platzhalter** für projektspezifische Regeln. Es beschreibt **keine** konkrete Fachdomäne und enthält **keine** ERP- oder Branchenlogik.
 
+## Agent-Ausführungsregeln (verpflichtend)
+
+Vor jeder Agent-Aufgabe ist verpflichtend folgender Arbeitsrahmen anzuwenden:
+
+prompts/agent/00-agent-task-frame.md
+
+Ohne vollständige Anwendung dieses Rahmens darf KEINE der folgenden Aktionen durchgeführt werden:
+
+- Analyse
+- Implementierung
+- Refactoring
+- Dokumentation
+- Test-Erstellung
+- Git-Aktionen
+
+Verstöße gegen diese Regel machen die Aufgabe ungültig.
+
+
 ---
 
 ## 1. Ziel des Dokuments

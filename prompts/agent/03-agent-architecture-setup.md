@@ -1,5 +1,16 @@
 # 03 – Agent Architecture Setup
 
+## Pflicht: Agent Task Frame
+
+Vor Ausführung dieses Prompts MUSS der Agent den vollständigen Arbeitsrahmen anwenden:
+
+prompts/agent/00-agent-task-frame.md
+
+Dieser Prompt darf NICHT ausgeführt werden, wenn der Task Frame nicht vorher vollständig abgearbeitet wurde.
+
+---
+
+
 ## Ziel
 
 Dieser Prompt dient dazu, nach dem Pflichtenheft die erste Version der Architektur im Repository aufzubauen.

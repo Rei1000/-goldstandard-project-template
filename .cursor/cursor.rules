@@ -156,6 +156,27 @@ Typische Zuordnung:
 
 ---
 
+
+
+## 11b. Verpflichtender Agent Task Frame
+
+Vor jeder Agent-Aufgabe MUSS der Arbeitsrahmen aus
+
+`prompts/agent/00-agent-task-frame.md`
+
+vollständig angewendet werden.
+
+Ohne vollständige Anwendung dieses Rahmens darf KEINE der folgenden Aktionen erfolgen:
+
+- Analyse
+- Implementierung
+- Refactoring
+- Dokumentation
+- Test-Erstellung
+- Git-Aktionen
+
+Aufgaben ohne vollständigen Task-Frame gelten als ungültig und sind abzubrechen.
+
 ## 12. Dokumentationspflicht
 
 Bei jeder Änderung prüfen:
