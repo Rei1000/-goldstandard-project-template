@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Goldstandard Launcher</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <header class="card">
+        <h1>Goldstandard Launcher</h1>
+        <p>
+          Lokaler Wizard für den Goldstandard-Prozess: GPT-Phase (ChatGPT) und Agent-Phase
+          (Cursor-Agent) mit strukturierter Übergabe.
+        </p>
+      </header>
+
+      <section class="card">
+        <h2>Fortschritt / Phasen</h2>
+        <ul class="phase-list">
+          <li><strong>GPT</strong> = Denken, Strukturieren, Handover erstellen</li>
+          <li><strong>Agent</strong> = Umsetzung im Repository mit Handover-Kontext</li>
+        </ul>
+      </section>
+
+      <section class="grid">
+        <article class="card">
+          <h2>GPT-Prompts (ChatGPT)</h2>
+          <ul id="gpt-list" class="prompt-list"></ul>
+        </article>
+
+        <article class="card">
+          <h2>Agent-Prompts (Cursor-Agent)</h2>
+          <ul id="agent-list" class="prompt-list"></ul>
+        </article>
+      </section>
+
+      <section class="card">
+        <h2>Ausgewählter Prompt</h2>
+        <div class="prompt-toolbar">
+          <button id="copyPromptBtn" class="secondary" disabled>Prompt kopieren</button>
+        </div>
+        <p id="prompt-path" class="path-label">Kein Prompt ausgewählt.</p>
+        <pre id="prompt-content" class="prompt-content"></pre>
+      </section>
+
+      <section class="card">
+        <h2>Handover-Kontext</h2>
+        <p>Füge hier den PROJEKTKONTEXT aus GPT Prompt 05 ein oder lade den gespeicherten Kontext.</p>
+        <textarea id="context-input" rows="12" placeholder="PROJEKTKONTEXT ..."></textarea>
+        <div class="button-row">
+          <button id="save-context">Kontext speichern</button>
+          <button id="load-context" class="secondary">Kontext laden</button>
+        </div>
+      </section>
+
+      <section class="card status-card">
+        <h2>Status</h2>
+        <p id="status-message">Bereit.</p>
+      </section>
+    </main>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
