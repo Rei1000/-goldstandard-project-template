@@ -77,6 +77,26 @@
         <h2>Status</h2>
         <p id="status-message">Bereit.</p>
       </section>
+
+      <section class="card project-create-card">
+        <h2>Neues Projekt lokal anlegen</h2>
+        <p>Erzeugt ein neues Projekt aus dem aktuellen Goldstandard-Template.</p>
+        <div class="project-form-grid">
+          <label for="project-name">Projektname</label>
+          <input id="project-name" type="text" placeholder="z. B. acme-platform" />
+
+          <label for="target-dir">Zielordner (absoluter Pfad)</label>
+          <input id="target-dir" type="text" placeholder="/Users/name/Projects" />
+        </div>
+        <div class="button-row">
+          <button id="create-project-btn">Projekt anlegen</button>
+        </div>
+        <div id="project-create-result" class="result-box" aria-live="polite"></div>
+        <div class="hint-box">
+          Wichtig: Nach dem Push zu GitHub müssen die Repository-Einstellungen anhand der
+          Checkliste geprüft werden: <code>meta/github-setup-checklist.md</code>
+        </div>
+      </section>
     </main>
 
     <script type="module" src="./app.js"></script>

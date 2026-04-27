@@ -17,6 +17,10 @@ const prevStepBtn = document.getElementById("prev-step");
 const nextStepBtn = document.getElementById("next-step");
 const markDoneBtn = document.getElementById("mark-done");
 const saveProgressBtn = document.getElementById("save-progress");
+const projectNameInput = document.getElementById("project-name");
+const targetDirInput = document.getElementById("target-dir");
+const createProjectBtn = document.getElementById("create-project-btn");
+const projectCreateResult = document.getElementById("project-create-result");
 
 let currentPromptContent = "";
 let activePromptButton = null;
@@ -292,6 +296,38 @@ async function copyPrompt() {
   }
 }
 
+async function createProject() {
+  const projectName = projectNameInput.value.trim();
+  const targetDir = targetDirInput.value.trim();
+
+  if (!projectName || !targetDir) {
+    projectCreateResult.textContent = "Bitte Projektname und Zielordner ausfüllen.";
+    setStatus("Projektanlage: Eingaben unvollständig.", true);
+    return;
+  }
+
+  createProjectBtn.disabled = true;
+  projectCreateResult.textContent = "Projekt wird angelegt...";
+
+  try {
+    const result = await fetchJson("/api/project/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ projectName, targetDir })
+    });
+
+    const nextSteps = (result.nextSteps || []).map((step, idx) => `${idx + 1}. ${step}`).join("\n");
+    projectCreateResult.textContent =
+      `Erfolg:\n${result.projectPath}\n\nNächste Schritte:\n${nextSteps}\n\nWichtig: Nach dem Push zu GitHub müssen die Repository-Einstellungen anhand der Checkliste geprüft werden: meta/github-setup-checklist.md`;
+    setStatus("Projektanlage erfolgreich abgeschlossen.");
+  } catch (error) {
+    projectCreateResult.textContent = `Fehler: ${error.message}`;
+    setStatus(`Projektanlage fehlgeschlagen: ${error.message}`, true);
+  } finally {
+    createProjectBtn.disabled = false;
+  }
+}
+
 function goToPreviousStep() {
   if (currentStep > 0) {
     currentStep -= 1;
@@ -322,6 +358,7 @@ prevStepBtn.addEventListener("click", goToPreviousStep);
 nextStepBtn.addEventListener("click", goToNextStep);
 markDoneBtn.addEventListener("click", markCurrentStepDone);
 saveProgressBtn.addEventListener("click", saveProgress);
+createProjectBtn.addEventListener("click", createProject);
 
 promptContent.textContent = "Wähle links einen Prompt aus, um den Inhalt anzuzeigen.";
 copyPromptBtn.disabled = true;

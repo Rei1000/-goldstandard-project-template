@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import http from "http";
 import { fileURLToPath } from "url";
+import { createProjectFromTemplate } from "./lib/projectCreator.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -210,6 +211,26 @@ const server = http.createServer(async (req, res) => {
       fs.mkdirSync(CONTEXT_DIR, { recursive: true });
       fs.writeFileSync(PROGRESS_FILE, JSON.stringify(payload, null, 2), "utf8");
       sendJson(res, 200, { ok: true });
+      return;
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/project/create") {
+      const rawBody = await readBody(req);
+      let parsed = {};
+      try {
+        parsed = JSON.parse(rawBody || "{}");
+      } catch {
+        sendJson(res, 400, { error: "Ungültiges JSON." });
+        return;
+      }
+
+      const result = createProjectFromTemplate({
+        projectName: parsed.projectName,
+        targetDir: parsed.targetDir,
+        templateRoot: REPO_ROOT
+      });
+
+      sendJson(res, 200, result);
       return;
     }
 
