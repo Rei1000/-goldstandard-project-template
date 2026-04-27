@@ -22,6 +22,30 @@ Jetzt sollst du:
 
 ---
 
+## Voraussetzung
+
+Dieser Agent-Prompt darf nur verwendet werden, wenn zuvor der strukturierte Projektkontext aus folgendem GPT-Prompt erzeugt wurde:
+
+`prompts/gpt/05-gpt-agent-handover.md`
+
+Der erzeugte Block muss dem Agenten vollständig mitgegeben werden.
+
+---
+
+## Erwarteter Kontext
+
+Der Agent erwartet einen Block mit folgender Struktur:
+
+- PROJEKTKONTEXT
+- USE CASES
+- FUNKTIONALE ANFORDERUNGEN
+- NICHT-FUNKTIONALE ANFORDERUNGEN
+- DOMÄNENLOGIK / BESONDERHEITEN
+- OPTIONALE TECHNISCHE HINWEISE
+- OFFENE PUNKTE / UNSICHERHEITEN
+
+---
+
 ## Deine Aufgabe
 
 Führe folgende Schritte aus:
@@ -45,6 +69,8 @@ feat/project-bootstrap
 - keine neuen Dateien erstellen (in diesem Schritt)
 - keine Implementierung starten
 - keine Dokumente befüllen
+- Wenn kein strukturierter Projektkontext übergeben wurde, darf der Agent nicht mit der Umsetzung beginnen.
+- In diesem Fall muss der Agent abbrechen und den Nutzer auffordern, zuerst `05-gpt-agent-handover.md` auszuführen.
 
 ---
 
