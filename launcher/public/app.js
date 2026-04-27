@@ -21,9 +21,19 @@ const projectNameInput = document.getElementById("project-name");
 const targetDirInput = document.getElementById("target-dir");
 const createProjectBtn = document.getElementById("create-project-btn");
 const projectCreateResult = document.getElementById("project-create-result");
+const buildAgentInputBtn = document.getElementById("build-agent-input-btn");
+const copyAgentInputBtn = document.getElementById("copy-agent-input-btn");
+const agentCombinedOutput = document.getElementById("agent-combined-output");
+const agentInputHint = document.getElementById("agent-input-hint");
+const handoverAgentPath = document.getElementById("handover-agent-path");
+
+const TASK_FRAME_REF = "prompts/agent/00-agent-task-frame.md";
 
 let currentPromptContent = "";
 let activePromptButton = null;
+/** Wenn zuletzt ein Eintrag aus „Agent-Prompts“ geladen wurde: Pfad und Inhalt. */
+let selectedAgentPath = null;
+let selectedAgentContent = null;
 let currentStep = 0;
 let completedSteps = [];
 
@@ -130,10 +140,147 @@ async function loadPromptContentByPath(promptPathValue, phaseLabel = null, butto
   currentPromptContent = result.content || "";
   promptContent.textContent = currentPromptContent;
   copyPromptBtn.disabled = currentPromptContent.trim().length === 0;
+
+  if (promptPathValue.startsWith("prompts/agent/")) {
+    selectedAgentPath = result.path;
+    selectedAgentContent = result.content || "";
+  } else {
+    selectedAgentPath = null;
+    selectedAgentContent = null;
+  }
+  updateHandoverAgentDisplay();
+
   if (phaseLabel) {
     setStatus(`${phaseLabel}-Prompt geladen: ${result.path}`);
   } else {
     setStatus(`Prompt geladen: ${result.path}`);
+  }
+}
+
+function updateHandoverAgentDisplay() {
+  if (!handoverAgentPath) {
+    return;
+  }
+  if (selectedAgentPath) {
+    handoverAgentPath.textContent = selectedAgentPath;
+  } else {
+    handoverAgentPath.textContent = "Kein Agent-Prompt ausgewählt.";
+  }
+}
+
+function buildAgentInputMarkdown(contextText, agentText) {
+  return `# Agent Input
+
+## Projektkontext
+
+${contextText}
+
+---
+
+## Auszuführender Agent-Prompt
+
+${agentText}
+
+---
+
+## Arbeitsregel
+
+Vor der Ausführung ist verpflichtend anzuwenden:
+
+${TASK_FRAME_REF}
+`;
+}
+
+function clearAgentInputHint() {
+  if (agentInputHint) {
+    agentInputHint.textContent = "";
+    agentInputHint.classList.remove("is-error");
+  }
+}
+
+async function refreshHandoverContextState() {
+  const badge = document.getElementById("handover-context-state");
+  if (!badge) {
+    return;
+  }
+  badge.className = "context-state-badge state-pending";
+  badge.textContent = "…";
+  try {
+    const res = await fetch("/api/context");
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && (data.content || "").trim()) {
+      badge.className = "context-state-badge state-ok";
+      badge.textContent = "Vorhanden";
+    } else {
+      badge.className = "context-state-badge state-missing";
+      badge.textContent = res.ok ? "Leer" : "Fehlt";
+    }
+  } catch {
+    badge.className = "context-state-badge state-missing";
+    badge.textContent = "Lesefehler";
+  }
+}
+
+async function buildFullAgentInput() {
+  if (!agentCombinedOutput || !agentInputHint || !copyAgentInputBtn) {
+    return;
+  }
+  clearAgentInputHint();
+  agentCombinedOutput.value = "";
+  copyAgentInputBtn.disabled = true;
+
+  const res = await fetch("/api/context");
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    agentInputHint.classList.add("is-error");
+    agentInputHint.textContent =
+      "Kein gespeicherter Kontext. Speichere zuerst den Handover in „Handover-Kontext“ (Datei .goldstandard/context.txt).";
+    return;
+  }
+  const contextText = (data.content || "").trim();
+  if (!contextText) {
+    agentInputHint.classList.add("is-error");
+    agentInputHint.textContent = "Gespeicherter Kontext ist leer. Ergänze und speichere den Handover-Kontext.";
+    return;
+  }
+  if (!selectedAgentPath || !String(selectedAgentContent || "").trim()) {
+    agentInputHint.classList.add("is-error");
+    agentInputHint.textContent =
+      'Kein Agent-Prompt ausgewählt. Wähle in der Liste „Agent-Prompts (Cursor-Agent)“ einen Eintrag aus.';
+    return;
+  }
+
+  const combined = buildAgentInputMarkdown(contextText, selectedAgentContent);
+  agentCombinedOutput.value = combined;
+  copyAgentInputBtn.disabled = false;
+  agentInputHint.classList.remove("is-error");
+  agentInputHint.textContent = "Agent-Input erzeugt. Zum Übernehmen in den Agent: „Agent-Input kopieren“.";
+  setStatus("Agent-Input erzeugt.");
+}
+
+async function copyFullAgentInput() {
+  if (!agentCombinedOutput || !agentInputHint) {
+    return;
+  }
+  const text = (agentCombinedOutput.value || "").trim();
+  if (!text) {
+    agentInputHint.classList.add("is-error");
+    agentInputHint.textContent = 'Kein Inhalt. Zuerst „Agent-Input erzeugen“ ausführen.';
+    return;
+  }
+  if (!navigator.clipboard || typeof navigator.clipboard.writeText !== "function") {
+    agentInputHint.classList.add("is-error");
+    agentInputHint.textContent = "Clipboard-API in diesem Browser nicht verfügbar.";
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(agentCombinedOutput.value);
+    agentInputHint.classList.remove("is-error");
+    agentInputHint.textContent = "Kopiert.";
+    setStatus("Agent-Input in die Zwischenablage kopiert.");
+  } catch (error) {
+    agentInputHint.classList.add("is-error");
+    agentInputHint.textContent = `Kopieren fehlgeschlagen: ${error.message || "unbekannter Fehler"}`;
   }
 }
 
@@ -267,6 +414,7 @@ async function saveContext() {
       body: JSON.stringify({ content })
     });
     setStatus("Handover-Kontext gespeichert.");
+    await refreshHandoverContextState();
   } catch (error) {
     setStatus(`Kontext konnte nicht gespeichert werden: ${error.message}`, true);
   }
@@ -277,6 +425,7 @@ async function loadContext() {
     const data = await fetchJson("/api/context");
     contextInput.value = data.content || "";
     setStatus("Gespeicherter Kontext geladen.");
+    await refreshHandoverContextState();
   } catch (error) {
     setStatus(`Kontext konnte nicht geladen werden: ${error.message}`, true);
   }
@@ -359,6 +508,16 @@ nextStepBtn.addEventListener("click", goToNextStep);
 markDoneBtn.addEventListener("click", markCurrentStepDone);
 saveProgressBtn.addEventListener("click", saveProgress);
 createProjectBtn.addEventListener("click", createProject);
+buildAgentInputBtn.addEventListener("click", () => {
+  buildFullAgentInput().catch((error) => {
+    if (agentInputHint) {
+      agentInputHint.classList.add("is-error");
+      agentInputHint.textContent = `Fehler: ${error.message || "unbekannt"}`;
+    }
+    setStatus(`Agent-Input: ${error.message || "Fehler"}`, true);
+  });
+});
+copyAgentInputBtn.addEventListener("click", copyFullAgentInput);
 
 promptContent.textContent = "Wähle links einen Prompt aus, um den Inhalt anzuzeigen.";
 copyPromptBtn.disabled = true;
@@ -367,6 +526,8 @@ async function init() {
   await loadPrompts();
   await loadProgress();
   await updateStepUI();
+  updateHandoverAgentDisplay();
+  await refreshHandoverContextState();
 }
 
 init();

@@ -73,6 +73,41 @@
         </div>
       </section>
 
+      <section class="card handover-input-card" aria-labelledby="handover-input-heading">
+        <h2 id="handover-input-heading">Agent-Handover vorbereiten</h2>
+        <p class="handover-input-intro">
+          Kombiniert den gespeicherten Handover-Kontext (<code>.goldstandard/context.txt</code>) mit dem
+          ausgewählten Agent-Prompt zu einem kopierfertigen Eingabetext für den Cursor-Agenten.
+        </p>
+        <div class="handover-status-row">
+          <div class="handover-status-item">
+            <span class="handover-label">Gespeicherter Kontext</span>
+            <span id="handover-context-state" class="context-state-badge" role="status"
+              >unbekannt</span
+            >
+          </div>
+          <div class="handover-status-item">
+            <span class="handover-label">Ausgewählter Agent-Prompt</span>
+            <p id="handover-agent-path" class="handover-agent-path">Kein Agent-Prompt ausgewählt.</p>
+          </div>
+        </div>
+        <div class="button-row handover-actions">
+          <button id="build-agent-input-btn" type="button">Agent-Input erzeugen</button>
+          <button id="copy-agent-input-btn" class="secondary" type="button" disabled
+            >Agent-Input kopieren</button
+          >
+        </div>
+        <p id="agent-input-hint" class="agent-input-hint" aria-live="polite"></p>
+        <label for="agent-combined-output" class="visually-hidden">Kombinierter Agent-Input</label>
+        <textarea
+          id="agent-combined-output"
+          class="agent-combined-output"
+          rows="14"
+          readonly
+          placeholder="Hier erscheint der kombinierte Text nach „Agent-Input erzeugen“."
+        ></textarea>
+      </section>
+
       <section class="card status-card">
         <h2>Status</h2>
         <p id="status-message">Bereit.</p>
