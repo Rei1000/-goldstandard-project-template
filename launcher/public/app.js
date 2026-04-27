@@ -28,6 +28,7 @@ const agentInputHint = document.getElementById("agent-input-hint");
 const handoverAgentPath = document.getElementById("handover-agent-path");
 
 const TASK_FRAME_REF = "prompts/agent/00-agent-task-frame.md";
+const WORKFLOW_PROMPT_PATH = "prompts/agent/00-agent-run-workflow.md";
 
 let currentPromptContent = "";
 let activePromptButton = null;
@@ -69,28 +70,11 @@ const WIZARD_STEPS = [
     hint: "Erzeuge den finalen PROJEKTKONTEXT für den Agenten."
   },
   {
-    title: "Agent 01 - Project Bootstrap",
+    title: "Agent 00 - Run Workflow (gesamt)",
     phase: "Agent",
-    promptPath: "prompts/agent/01-agent-project-bootstrap.md",
-    hint: "Initialisiere den Git- und Arbeitskontext."
-  },
-  {
-    title: "Agent 02 - Write Pflichtenheft",
-    phase: "Agent",
-    promptPath: "prompts/agent/02-agent-write-pflichtenheft.md",
-    hint: "Überführe Anforderungen nach docs/pflichtenheft.md."
-  },
-  {
-    title: "Agent 03 - Architecture Setup",
-    phase: "Agent",
-    promptPath: "prompts/agent/03-agent-architecture-setup.md",
-    hint: "Lege die Architekturgrundlage an."
-  },
-  {
-    title: "Agent 04 - Project Structure",
-    phase: "Agent",
-    promptPath: "prompts/agent/04-agent-project-structure.md",
-    hint: "Leite die Projektstruktur aus Architektur und Anforderungen ab."
+    promptPath: WORKFLOW_PROMPT_PATH,
+    hint:
+      "Zentraler Einstieg: ein Prompt steuert Task Frame, Bootstrap, Pflichtenheft, Architektur und Projektstruktur. Nutze unten „Workflow-Input erzeugen“, um Kontext + Workflow an den Cursor-Agenten zu übergeben."
   }
 ];
 
@@ -161,15 +145,19 @@ function updateHandoverAgentDisplay() {
   if (!handoverAgentPath) {
     return;
   }
-  if (selectedAgentPath) {
-    handoverAgentPath.textContent = selectedAgentPath;
-  } else {
-    handoverAgentPath.textContent = "Kein Agent-Prompt ausgewählt.";
+  if (!selectedAgentPath) {
+    handoverAgentPath.textContent = `Standard: ${WORKFLOW_PROMPT_PATH} (wird beim Erzeugen automatisch geladen)`;
+    return;
   }
+  if (selectedAgentPath === WORKFLOW_PROMPT_PATH) {
+    handoverAgentPath.textContent = `${WORKFLOW_PROMPT_PATH} (aus Liste geladen)`;
+    return;
+  }
+  handoverAgentPath.textContent = `Alternativ gewählt: ${selectedAgentPath} (ersetzt den Standard-Workflow-Prompt)`;
 }
 
-function buildAgentInputMarkdown(contextText, agentText) {
-  return `# Agent Input
+function buildAgentWorkflowInputMarkdown(contextText, promptBody) {
+  return `# Agent Workflow Input
 
 ## Projektkontext
 
@@ -177,16 +165,16 @@ ${contextText}
 
 ---
 
-## Auszuführender Agent-Prompt
+## Auszuführender Workflow-Prompt
 
-${agentText}
+${promptBody}
 
 ---
 
-## Arbeitsregel
+## Hinweis
 
-Vor der Ausführung ist verpflichtend anzuwenden:
-
+Der Workflow-Prompt koordiniert die weiteren Agent-Prompts 01–04.
+Der Agent Task Frame ist verpflichtend anzuwenden:
 ${TASK_FRAME_REF}
 `;
 }
@@ -243,19 +231,36 @@ async function buildFullAgentInput() {
     agentInputHint.textContent = "Gespeicherter Kontext ist leer. Ergänze und speichere den Handover-Kontext.";
     return;
   }
-  if (!selectedAgentPath || !String(selectedAgentContent || "").trim()) {
-    agentInputHint.classList.add("is-error");
-    agentInputHint.textContent =
-      'Kein Agent-Prompt ausgewählt. Wähle in der Liste „Agent-Prompts (Cursor-Agent)“ einen Eintrag aus.';
-    return;
+
+  let promptBody = "";
+  let usedAlternative = false;
+  if (selectedAgentPath && String(selectedAgentContent || "").trim()) {
+    promptBody = selectedAgentContent.trim();
+    usedAlternative = selectedAgentPath !== WORKFLOW_PROMPT_PATH;
+  } else {
+    try {
+      const wf = await fetchJson(`/api/prompt?path=${encodeURIComponent(WORKFLOW_PROMPT_PATH)}`);
+      promptBody = (wf.content || "").trim();
+      if (!promptBody) {
+        agentInputHint.classList.add("is-error");
+        agentInputHint.textContent = `Workflow-Prompt ist leer oder nicht lesbar: ${WORKFLOW_PROMPT_PATH}`;
+        return;
+      }
+    } catch (error) {
+      agentInputHint.classList.add("is-error");
+      agentInputHint.textContent = `Workflow-Prompt konnte nicht geladen werden: ${error.message}`;
+      return;
+    }
   }
 
-  const combined = buildAgentInputMarkdown(contextText, selectedAgentContent);
+  const combined = buildAgentWorkflowInputMarkdown(contextText, promptBody);
   agentCombinedOutput.value = combined;
   copyAgentInputBtn.disabled = false;
   agentInputHint.classList.remove("is-error");
-  agentInputHint.textContent = "Agent-Input erzeugt. Zum Übernehmen in den Agent: „Agent-Input kopieren“.";
-  setStatus("Agent-Input erzeugt.");
+  agentInputHint.textContent = usedAlternative
+    ? "Workflow-Input mit alternativem Agent-Prompt erzeugt. Zum Übernehmen: „Workflow-Input kopieren“."
+    : "Workflow-Input mit zentralem Workflow-Prompt erzeugt. Zum Übernehmen: „Workflow-Input kopieren“.";
+  setStatus("Workflow-Input erzeugt.");
 }
 
 async function copyFullAgentInput() {
@@ -265,7 +270,7 @@ async function copyFullAgentInput() {
   const text = (agentCombinedOutput.value || "").trim();
   if (!text) {
     agentInputHint.classList.add("is-error");
-    agentInputHint.textContent = 'Kein Inhalt. Zuerst „Agent-Input erzeugen“ ausführen.';
+    agentInputHint.textContent = 'Kein Inhalt. Zuerst „Workflow-Input erzeugen“ ausführen.';
     return;
   }
   if (!navigator.clipboard || typeof navigator.clipboard.writeText !== "function") {
@@ -277,7 +282,7 @@ async function copyFullAgentInput() {
     await navigator.clipboard.writeText(agentCombinedOutput.value);
     agentInputHint.classList.remove("is-error");
     agentInputHint.textContent = "Kopiert.";
-    setStatus("Agent-Input in die Zwischenablage kopiert.");
+    setStatus("Workflow-Input in die Zwischenablage kopiert.");
   } catch (error) {
     agentInputHint.classList.add("is-error");
     agentInputHint.textContent = `Kopieren fehlgeschlagen: ${error.message || "unbekannter Fehler"}`;
@@ -514,7 +519,7 @@ buildAgentInputBtn.addEventListener("click", () => {
       agentInputHint.classList.add("is-error");
       agentInputHint.textContent = `Fehler: ${error.message || "unbekannt"}`;
     }
-    setStatus(`Agent-Input: ${error.message || "Fehler"}`, true);
+    setStatus(`Workflow-Input: ${error.message || "Fehler"}`, true);
   });
 });
 copyAgentInputBtn.addEventListener("click", copyFullAgentInput);
