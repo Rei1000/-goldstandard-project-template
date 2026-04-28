@@ -72,6 +72,19 @@ test("erstellt Projektordner unter targetDir/projectName", () => {
   assert.equal(fs.existsSync(result.projectPath), true);
 });
 
+test("erstellt Projekt auch ohne Kontext", () => {
+  const templateRoot = setupTemplateRoot();
+  const targetDir = makeTempDir("goldstandard-target-");
+  const result = createProjectFromTemplate({
+    projectName: "no-context-project",
+    targetDir,
+    templateRoot
+  });
+
+  assert.equal(result.success, true);
+  assert.equal(fs.existsSync(path.join(result.projectPath, ".git")), true);
+});
+
 test("kopiert notwendige Zielstruktur-Ordner", () => {
   const templateRoot = setupTemplateRoot();
   const targetDir = makeTempDir("goldstandard-target-");
@@ -119,7 +132,7 @@ test("kopiert Template-Artefakte nicht ins Zielprojekt", () => {
   assert.equal(fs.existsSync(path.join(result.projectPath, "prompts")), false);
 });
 
-test("übernimmt .goldstandard/context.txt ins Zielprojekt", () => {
+test("übernimmt .goldstandard/context.txt ins Zielprojekt, wenn Kontext vorhanden ist", () => {
   const templateRoot = setupTemplateRoot();
   const targetDir = makeTempDir("goldstandard-target-");
   const contextContent = "PROJEKTKONTEXT\n\nZiel: Eine saubere Testplattform.";
@@ -133,6 +146,21 @@ test("übernimmt .goldstandard/context.txt ins Zielprojekt", () => {
   const contextPath = path.join(result.projectPath, ".goldstandard", "context.txt");
   assert.equal(fs.existsSync(contextPath), true);
   assert.equal(fs.readFileSync(contextPath, "utf8"), contextContent);
+});
+
+test("legt ohne Kontext keinen fachlichen Kontextinhalt an", () => {
+  const templateRoot = setupTemplateRoot();
+  const targetDir = makeTempDir("goldstandard-target-");
+  const result = createProjectFromTemplate({
+    projectName: "empty-context-check",
+    targetDir,
+    templateRoot
+  });
+
+  const contextDir = path.join(result.projectPath, ".goldstandard");
+  assert.equal(fs.existsSync(contextDir), true);
+  const contextPath = path.join(contextDir, "context.txt");
+  assert.equal(fs.existsSync(contextPath), false);
 });
 
 test("erstellt projektspezifische README mit Kontext-Hinweis", () => {
@@ -152,6 +180,21 @@ test("erstellt projektspezifische README mit Kontext-Hinweis", () => {
   assert.ok(readme.includes("## Ziel des Projekts"));
   assert.ok(readme.includes(".goldstandard/context.txt"));
   assert.ok(readme.includes("docs/"));
+});
+
+test("erstellt ohne Kontext eine minimale projektspezifische README", () => {
+  const templateRoot = setupTemplateRoot();
+  const targetDir = makeTempDir("goldstandard-target-");
+  const result = createProjectFromTemplate({
+    projectName: "minimal-readme-project",
+    targetDir,
+    templateRoot
+  });
+
+  const readme = fs.readFileSync(path.join(result.projectPath, "README.md"), "utf8");
+  assert.ok(readme.startsWith("# minimal-readme-project"));
+  assert.ok(readme.includes("Der fachliche Projektkontext wird nach Abschluss des GPT-Workflows ergänzt."));
+  assert.ok(readme.includes("GPT-Prompts 01-05"));
 });
 
 test("initialisiert Git-Repository und erstellt Initial-Commit", () => {
@@ -229,18 +272,22 @@ test("bricht ab, wenn projectName ungültig ist", () => {
   );
 });
 
-test("bricht ab, wenn kein verwertbarer Kontext übergeben wurde", () => {
+test("initialisiert auch ohne Kontext ein Git-Repository mit Initial-Commit", () => {
   const templateRoot = setupTemplateRoot();
   const targetDir = makeTempDir("goldstandard-target-");
+  const result = createProjectFromTemplate({
+    projectName: "git-without-context",
+    targetDir,
+    templateRoot
+  });
 
-  assert.throws(
-    () =>
-      createProjectFromTemplate({
-        projectName: "missing-context",
-        targetDir,
-        templateRoot,
-        contextContent: "   "
-      }),
-    /Kein verwertbarer Projektkontext/
-  );
+  const projectPath = result.projectPath;
+  assert.equal(fs.existsSync(path.join(projectPath, ".git")), true);
+  const head = execSync("git rev-parse --verify HEAD", { cwd: projectPath, encoding: "utf8" }).trim();
+  assert.ok(head.length > 0);
+  const commitMessage = execSync("git log -1 --pretty=%s", {
+    cwd: projectPath,
+    encoding: "utf8"
+  }).trim();
+  assert.equal(commitMessage, "chore: initialize git-without-context from goldstandard template");
 });
