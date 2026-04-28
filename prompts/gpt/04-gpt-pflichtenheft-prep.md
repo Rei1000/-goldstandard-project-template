@@ -62,9 +62,15 @@ Am Ende musst du eine strukturierte Zusammenfassung liefern mit:
 
 ## Nächster Schritt
 
-Wenn diese Vorbereitung abgeschlossen ist, beginnt die Agent-Phase mit:
+Wenn diese Vorbereitung abgeschlossen ist, folgt NICHT direkt die Agent-Phase.
 
-`prompts/agent/01-agent-project-bootstrap.md`
+Als nächstes MUSS der GPT-Handover-Prompt ausgeführt werden, um den strukturierten Projektkontext zu erzeugen.
+
+`prompts/gpt/05-gpt-agent-handover.md`
+
+Erst nachdem dieser Kontext im Launcher gespeichert wurde, wird der Agent-Workflow vorbereitet über:
+
+`prompts/agent/01-agent-run-workflow.md`
 
 ---
 

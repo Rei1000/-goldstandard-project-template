@@ -1,4 +1,4 @@
-# 00 – Agent Run Workflow
+# 01 – Agent Run Workflow
 
 ## Pflicht: Agent Task Frame
 
@@ -30,7 +30,6 @@ Der Nutzer soll diesen Prompt im Zielprojekt verwenden, damit der Agent den voll
 
 Vor Ausführung dieses Workflows müssen vorhanden sein:
 
-- `.goldstandard/context.txt`
 - `prompts/agent/00-agent-task-frame.md`
 - `prompts/agent/01-agent-project-bootstrap.md`
 - `prompts/agent/02-agent-write-pflichtenheft.md`
@@ -43,9 +42,11 @@ Wenn eine dieser Dateien fehlt, MUSS der Agent abbrechen und den Nutzer informie
 
 ## Kontext laden
 
-Der Agent MUSS zuerst lesen:
+Primär soll der Agent zuerst lesen:
 
 `.goldstandard/context.txt`
+
+Falls `.goldstandard/context.txt` nicht existiert, ist der im Prompt enthaltene Kontext zu verwenden.
 
 Dieser Kontext ist die verbindliche fachliche Grundlage für alle folgenden Schritte.
 
@@ -71,7 +72,7 @@ Die Reihenfolge darf nicht geändert werden.
 Für jeden Schritt gilt:
 
 1. jeweiligen Prompt lesen
-2. Aufgabe gegen `.goldstandard/context.txt` prüfen
+2. Aufgabe gegen den verfügbaren Projektkontext prüfen
 3. Agent Task Frame anwenden
 4. notwendige Dateien bestimmen
 5. Umsetzung durchführen
@@ -85,7 +86,7 @@ Für jeden Schritt gilt:
 
 Der Agent MUSS abbrechen, wenn:
 
-- `.goldstandard/context.txt` fehlt oder leer ist
+- kein verwertbarer Projektkontext vorliegt (weder Datei noch Prompt-Kontext)
 - ein erforderlicher Agent-Prompt fehlt
 - der Agent Task Frame nicht angewendet werden kann
 - fachliche Informationen fehlen, die für den nächsten Schritt zwingend notwendig sind
