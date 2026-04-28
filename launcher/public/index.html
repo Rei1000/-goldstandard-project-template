@@ -11,72 +11,82 @@
       <header class="card">
         <h1>Goldstandard Launcher</h1>
         <p>
-          Lokaler Wizard für den Goldstandard-Prozess: GPT-Phase (ChatGPT) und Agent-Phase
-          (Cursor-Agent) mit strukturierter Übergabe.
+          Geführter Workflow für den Goldstandard-Prozess: Projekt anlegen, GPT-Handover vorbereiten
+          und Agent-Start im Zielprojekt.
         </p>
       </header>
 
-      <section class="card">
-        <h2>Fortschritt / Phasen</h2>
-        <ul class="phase-list">
-          <li><strong>GPT</strong> = Denken, Strukturieren, Handover erstellen</li>
-          <li><strong>Agent</strong> = Umsetzung im Repository mit Handover-Kontext</li>
-        </ul>
-      </section>
-
-      <section class="card workflow-guide-card">
-        <h2>Was jetzt zu tun ist</h2>
-        <ol class="workflow-guide-list">
-          <li>GPT-Prompts 01 bis 05 in ChatGPT bearbeiten.</li>
-          <li>Den erzeugten Projektkontext unten im Launcher speichern.</li>
-          <li>Workflow-Input erzeugen und kopieren.</li>
-          <li>Danach das Zielprojekt in Cursor öffnen und den Agent starten.</li>
+      <section class="card stepper-card">
+        <h2>Workflow</h2>
+        <ol id="wizard-stepper" class="wizard-stepper">
+          <li id="stepper-project">1. Projekt lokal anlegen</li>
+          <li id="stepper-gpt">2. GPT-Phase durchführen</li>
+          <li id="stepper-context">3. Projektkontext speichern</li>
+          <li id="stepper-workflow">4. Workflow-Input erzeugen</li>
+          <li id="stepper-cursor">5. In Cursor öffnen und Agent ausführen</li>
         </ol>
       </section>
 
-      <section class="grid">
-        <article class="card">
-          <h2>GPT-Prompts (ChatGPT)</h2>
-          <p id="gpt-flow-hint" class="gpt-flow-hint">
-            Wähle einen GPT-Prompt aus, um den nächsten Schritt im ChatGPT-Flow zu sehen.
-          </p>
-          <ul id="gpt-list" class="prompt-list"></ul>
-        </article>
-
-        <article class="card">
-          <h2>Agent-Prompts (Cursor-Agent)</h2>
-          <p class="taskframe-note">
-            <code>prompts/agent/00-agent-task-frame.md</code> ist eine verpflichtende Arbeitsregel und wird
-            automatisch über den Workflow berücksichtigt. Du musst diesen Prompt nicht manuell starten.
-          </p>
-          <p class="list-sub">
-            Als Start im Zielprojekt dient der zentrale Workflow
-            <code>prompts/agent/01-agent-run-workflow.md</code>. Die Einzelprompts 01–04 kannst du bei Bedarf
-            weiterhin hier lesen; für den kombinierten Einstieg musst du sie nicht mehr einzeln nacheinander starten.
-          </p>
-          <p class="list-sub list-sub-strong">
-            Einziger Startpunkt für die Ausführung ist
-            <code>prompts/agent/01-agent-run-workflow.md</code>.
-          </p>
-          <ul id="agent-list" class="prompt-list"></ul>
-        </article>
-      </section>
-
-      <section class="card">
-        <h2>Ausgewählter Prompt</h2>
-        <div class="prompt-toolbar">
-          <button id="copyPromptBtn" class="secondary" disabled>Prompt kopieren</button>
-          <span id="copy-prompt-feedback" class="copy-prompt-feedback" aria-live="polite"></span>
+      <section id="step-project" class="card wizard-step">
+        <div class="step-head">
+          <h2>Schritt 1: Projekt lokal anlegen</h2>
+          <span id="badge-project" class="step-badge">Aktiv</span>
         </div>
-        <p id="prompt-path" class="path-label">Kein Prompt ausgewählt.</p>
-        <pre id="prompt-content" class="prompt-content"></pre>
+        <p class="step-intro">
+          Erstelle zuerst das Zielprojekt. Kontext ist hier noch nicht erforderlich und wird später ergänzt.
+        </p>
+        <div class="project-form-grid">
+          <label for="project-name">Projektname</label>
+          <input id="project-name" type="text" placeholder="z. B. acme-platform" />
+          <p class="field-hint">Verwende nur Buchstaben, Zahlen, Punkt, Unterstrich oder Minus.</p>
+          <p id="project-name-error" class="field-error" aria-live="polite"></p>
+
+          <label for="target-dir">Zielordner (absoluter Pfad)</label>
+          <input id="target-dir" type="text" placeholder="/Users/name/Projects" />
+          <p class="field-hint">
+            Browser liefern aus Sicherheitsgründen keinen verlässlichen absoluten Ordnerpfad per Picker.
+            Trage den Zielpfad direkt ein; zuletzt verwendete Werte bleiben lokal gespeichert.
+          </p>
+          <p id="target-dir-error" class="field-error" aria-live="polite"></p>
+        </div>
+        <div class="button-row">
+          <button id="create-project-btn">Projekt anlegen</button>
+        </div>
+        <div id="project-create-result" class="result-box result-box--multiline" aria-live="polite"></div>
       </section>
 
-      <section class="card">
-        <h2>Handover-Kontext</h2>
-        <p>Füge hier den PROJEKTKONTEXT aus GPT Prompt 05 ein oder lade den gespeicherten Kontext.</p>
+      <section id="step-gpt" class="card wizard-step is-locked" aria-disabled="true">
+        <div class="step-head">
+          <h2>Schritt 2: GPT-Prompts durchführen</h2>
+          <span id="badge-gpt" class="step-badge">Warten auf Schritt 1</span>
+        </div>
+        <p id="gpt-flow-hint" class="gpt-flow-hint">
+          Nach erfolgreicher Projektanlage: GPT-Prompt wählen, kopieren und im selben ChatGPT-Workflow
+          schrittweise bearbeiten.
+        </p>
+        <ul id="gpt-list" class="prompt-list"></ul>
+
+        <div class="prompt-viewer">
+          <h3>Ausgewählter Prompt</h3>
+          <div class="prompt-toolbar">
+            <button id="copyPromptBtn" class="secondary" disabled>Prompt kopieren</button>
+            <span id="copy-prompt-feedback" class="copy-prompt-feedback" aria-live="polite"></span>
+          </div>
+          <p id="prompt-path" class="path-label">Kein Prompt ausgewählt.</p>
+          <pre id="prompt-content" class="prompt-content"></pre>
+        </div>
+      </section>
+
+      <section id="step-context" class="card wizard-step is-locked" aria-disabled="true">
+        <div class="step-head">
+          <h2>Schritt 3: Projektkontext speichern</h2>
+          <span id="badge-context" class="step-badge">Warten auf Schritt 2</span>
+        </div>
+        <p class="step-intro">
+          Der vollständige Kontext entsteht nach GPT 05. Füge ihn hier ein und speichere ihn lokal.
+        </p>
         <p class="context-location-hint">
-          Der Kontext wird aktuell im Launcher gespeichert und beim Agent-Input mit übergeben.
+          Der Kontext wird aktuell im Launcher gespeichert und beim Workflow-Input mit übergeben.
         </p>
         <textarea id="context-input" rows="12" placeholder="PROJEKTKONTEXT ..."></textarea>
         <div class="button-row">
@@ -85,12 +95,14 @@
         </div>
       </section>
 
-      <section class="card handover-input-card" aria-labelledby="handover-input-heading">
-        <h2 id="handover-input-heading">Agent-Handover vorbereiten</h2>
+      <section id="step-workflow" class="card wizard-step is-locked handover-input-card" aria-disabled="true">
+        <div class="step-head">
+          <h2>Schritt 4: Agent-Workflow-Input erzeugen</h2>
+          <span id="badge-workflow" class="step-badge">Warten auf Schritt 3</span>
+        </div>
         <p class="handover-input-intro">
           Erzeugt einen kopierfertigen <strong>Agent-Workflow-Input</strong> aus dem gespeicherten
-          Handover-Kontext (<code>.goldstandard/context.txt</code>) und dem zentralen
-          Workflow-Prompt. Optional kannst du in der Liste einen anderen Agent-Prompt wählen.
+          Handover-Kontext und dem empfohlenen Startprompt.
         </p>
         <div class="handover-recommendation-box" role="note">
           <strong class="handover-recommendation-title">Empfohlener Agent-Startpunkt</strong>
@@ -98,18 +110,14 @@
             <code>prompts/agent/01-agent-run-workflow.md</code>
           </p>
           <p class="handover-recommendation-text">
-            Dieser Prompt koordiniert den <strong>Agent Task Frame</strong>, den
-            <strong>Projekt-Bootstrap</strong>, das <strong>Pflichtenheft</strong>, die
-            <strong>Architektur</strong> und die <strong>Projektstruktur</strong>. Du musst die
-            Agent-Prompts 01–04 nicht mehr nacheinander manuell starten.
+            <code>prompts/agent/00-agent-task-frame.md</code> bleibt eine verpflichtende Regel und wird
+            im Workflow automatisch berücksichtigt.
           </p>
         </div>
         <div class="handover-status-row">
           <div class="handover-status-item">
             <span class="handover-label">Gespeicherter Kontext</span>
-            <span id="handover-context-state" class="context-state-badge" role="status"
-              >unbekannt</span
-            >
+            <span id="handover-context-state" class="context-state-badge" role="status">unbekannt</span>
           </div>
           <div class="handover-status-item">
             <span class="handover-label">Inhalt für den kombinierten Prompt</span>
@@ -118,21 +126,11 @@
         </div>
         <div class="button-row handover-actions">
           <button id="build-agent-input-btn" type="button">Workflow-Input erzeugen</button>
-          <button id="copy-agent-input-btn" class="secondary" type="button" disabled
-            >Workflow-Input kopieren</button
-          >
+          <button id="copy-agent-input-btn" class="secondary" type="button" disabled>
+            Workflow-Input kopieren
+          </button>
         </div>
         <p id="agent-input-hint" class="agent-input-hint" aria-live="polite"></p>
-        <div class="next-step-box">
-          <h3>Nächster Schritt</h3>
-          <ol>
-            <li>Workflow-Input kopieren</li>
-            <li>Zielprojekt in Cursor öffnen</li>
-            <li>Cursor-Agent starten</li>
-            <li>Workflow-Input einfügen</li>
-            <li>Agent ausführen</li>
-          </ol>
-        </div>
         <label for="agent-combined-output" class="visually-hidden">Kombinierter Agent-Workflow-Input</label>
         <textarea
           id="agent-combined-output"
@@ -143,29 +141,60 @@
         ></textarea>
       </section>
 
+      <section class="grid">
+        <article id="step-agent-prompts" class="card wizard-step is-locked" aria-disabled="true">
+          <div class="step-head">
+            <h2>Agent-Prompts (Referenz)</h2>
+            <span id="badge-agent-prompts" class="step-badge">Später</span>
+          </div>
+          <p class="taskframe-note">
+            <code>prompts/agent/00-agent-task-frame.md</code> ist Pflichtregel und kein Ausführungsprompt.
+          </p>
+          <p class="list-sub">
+            Startpunkt bleibt <code>prompts/agent/01-agent-run-workflow.md</code>.
+          </p>
+          <ul id="agent-list" class="prompt-list"></ul>
+        </article>
+
+        <article id="step-cursor" class="card wizard-step is-locked" aria-disabled="true">
+          <div class="step-head">
+            <h2>Schritt 5: In Cursor öffnen und Agent ausführen</h2>
+            <span id="badge-cursor" class="step-badge">Warten auf Schritt 4</span>
+          </div>
+          <div class="next-step-box">
+            <h3>Nächster Schritt</h3>
+            <ol>
+              <li>Workflow-Input kopieren</li>
+              <li>Zielprojekt in Cursor öffnen</li>
+              <li>Cursor-Agent starten</li>
+              <li>Workflow-Input einfügen</li>
+              <li>Agent ausführen</li>
+            </ol>
+          </div>
+          <p id="cursor-step-hint" class="step-intro">
+            Sobald der Workflow-Input erzeugt ist, kannst du in das Zielprojekt wechseln.
+          </p>
+        </article>
+      </section>
+
       <section class="card status-card">
         <h2>Status</h2>
         <p id="status-message">Bereit.</p>
       </section>
 
-      <section class="card project-create-card">
-        <h2>Neues Projekt lokal anlegen</h2>
-        <p>Erzeugt ein neues Projekt aus dem aktuellen Goldstandard-Template.</p>
-        <div class="project-form-grid">
-          <label for="project-name">Projektname</label>
-          <input id="project-name" type="text" placeholder="z. B. acme-platform" />
+      <section class="card hint-box">
+        <p>
+          Wichtig: Nach dem ersten Push im Zielprojekt sollten die Repository-Einstellungen geprüft werden:
+          <code>meta/github-setup-checklist.md</code>
+        </p>
+      </section>
 
-          <label for="target-dir">Zielordner (absoluter Pfad)</label>
-          <input id="target-dir" type="text" placeholder="/Users/name/Projects" />
-        </div>
-        <div class="button-row">
-          <button id="create-project-btn">Projekt anlegen</button>
-        </div>
-        <div id="project-create-result" class="result-box" aria-live="polite"></div>
-        <div class="hint-box">
-          Wichtig: Nach dem Push zu GitHub müssen die Repository-Einstellungen anhand der
-          Checkliste geprüft werden: <code>meta/github-setup-checklist.md</code>
-        </div>
+      <section class="card is-hidden">
+        <h2>Legacy-Bereich</h2>
+        <article class="card is-hidden">
+          <h2>Agent-Prompts (Cursor-Agent)</h2>
+          <ul class="prompt-list"></ul>
+        </article>
       </section>
     </main>
 

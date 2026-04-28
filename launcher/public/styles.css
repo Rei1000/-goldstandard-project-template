@@ -41,24 +41,9 @@ h2 {
   margin-top: 0;
 }
 
-.phase-list,
 .prompt-list {
   margin: 0;
   padding-left: 18px;
-}
-
-.list-sub {
-  margin: 0 0 12px;
-  font-size: 0.9rem;
-  color: #486581;
-  line-height: 1.45;
-}
-
-.list-sub code {
-  background: #f1f5f9;
-  border-radius: 4px;
-  padding: 1px 5px;
-  font-size: 0.88em;
 }
 
 .gpt-flow-hint {
@@ -70,11 +55,6 @@ h2 {
   padding: 10px 12px;
   font-size: 0.9rem;
   line-height: 1.45;
-}
-
-.list-sub-strong {
-  color: #1e3a8a;
-  font-weight: 600;
 }
 
 .taskframe-note {
@@ -166,8 +146,8 @@ h2 {
 .prompt-toolbar {
   display: flex;
   align-items: center;
-  gap: 10px;
-  justify-content: flex-end;
+  gap: 12px;
+  justify-content: flex-start;
   margin-bottom: 8px;
 }
 
@@ -212,6 +192,20 @@ textarea {
   color: #243b53;
 }
 
+.field-hint {
+  margin: -4px 0 0;
+  color: #6b7785;
+  font-size: 0.85rem;
+}
+
+.field-error {
+  margin: -6px 0 2px;
+  min-height: 1rem;
+  color: #b42318;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
 .project-form-grid input {
   width: 100%;
   border: 1px solid #bcccdc;
@@ -223,6 +217,7 @@ textarea {
 .button-row {
   display: flex;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
 button {
@@ -252,10 +247,6 @@ button:hover {
   border-left: 4px solid #3b82f6;
 }
 
-.project-create-card {
-  border-left: 4px solid #14b8a6;
-}
-
 #status-message {
   margin: 0;
   color: #334e68;
@@ -273,12 +264,11 @@ button:hover {
 }
 
 .hint-box {
-  margin-top: 12px;
   border: 1px solid #f59e0b;
   border-radius: 8px;
   background: #fffbeb;
   color: #92400e;
-  padding: 10px;
+  padding: 12px 14px;
 }
 
 .hint-box code {
@@ -287,21 +277,6 @@ button:hover {
   padding: 2px 6px;
 }
 
-.workflow-guide-card {
-  border-left: 4px solid #64748b;
-}
-
-.workflow-guide-list {
-  margin: 0;
-  padding-left: 18px;
-  color: #334e68;
-}
-
-.workflow-guide-list li + li {
-  margin-top: 6px;
-}
-
-/* Agent-Handover: kombinierter Input */
 .handover-input-card {
   border-left: 4px solid #4f46e5;
 }
@@ -423,7 +398,6 @@ button:hover {
 }
 
 .handover-actions {
-  flex-wrap: wrap;
   margin-bottom: 8px;
 }
 
@@ -475,6 +449,129 @@ button:hover {
   color: #4f46e5;
 }
 
+.stepper-card {
+  border-left: 4px solid #64748b;
+}
+
+.wizard-stepper {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.wizard-stepper li {
+  border: 1px solid #d9e2ec;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 0.9rem;
+  background: #f8fafc;
+}
+
+.wizard-stepper li.active {
+  border-color: #2563eb;
+  background: #dbeafe;
+  color: #1e3a8a;
+  font-weight: 700;
+}
+
+.wizard-stepper li.done {
+  border-color: #16a34a;
+  background: #dcfce7;
+  color: #166534;
+}
+
+.wizard-stepper li.upcoming {
+  border-color: #d6d3d1;
+  background: #fafaf9;
+  color: #57534e;
+}
+
+.wizard-stepper li.locked {
+  border-color: #e2e8f0;
+  background: #f8fafc;
+  color: #64748b;
+}
+
+.wizard-step {
+  border-left: 4px solid #94a3b8;
+}
+
+.wizard-step.is-active {
+  border-left-color: #2563eb;
+}
+
+.wizard-step.is-upcoming {
+  border-left-color: #a16207;
+}
+
+.wizard-step.is-done {
+  border-left-color: #16a34a;
+}
+
+.wizard-step.is-locked {
+  border-left-color: #cbd5e1;
+  opacity: 0.85;
+}
+
+.step-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.step-head h2 {
+  margin-bottom: 8px;
+}
+
+.step-badge {
+  border-radius: 999px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #475569;
+  padding: 3px 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.step-badge.active {
+  background: #dbeafe;
+  border-color: #93c5fd;
+  color: #1d4ed8;
+}
+
+.step-badge.upcoming {
+  background: #fef3c7;
+  border-color: #fcd34d;
+  color: #92400e;
+}
+
+.step-badge.locked {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #64748b;
+}
+
+.step-intro {
+  margin-top: 0;
+  color: #486581;
+}
+
+.prompt-viewer {
+  margin-top: 12px;
+  border: 1px solid #d9e2ec;
+  border-radius: 8px;
+  padding: 12px;
+  background: #fbfdff;
+}
+
+.prompt-viewer h3 {
+  margin-top: 0;
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -491,4 +588,13 @@ button:hover {
   .grid {
     grid-template-columns: 1fr;
   }
+
+  .step-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+.is-hidden {
+  display: none;
 }
