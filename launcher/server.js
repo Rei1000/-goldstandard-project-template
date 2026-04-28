@@ -224,10 +224,27 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
+      if (!fs.existsSync(CONTEXT_FILE)) {
+        sendJson(res, 400, {
+          error:
+            "Kein gespeicherter Kontext gefunden. Bitte zuerst den PROJEKTKONTEXT im Launcher speichern."
+        });
+        return;
+      }
+      const contextContent = fs.readFileSync(CONTEXT_FILE, "utf8");
+      if (!contextContent.trim()) {
+        sendJson(res, 400, {
+          error:
+            "Der gespeicherte Kontext ist leer. Bitte den PROJEKTKONTEXT im Launcher einfügen und speichern."
+        });
+        return;
+      }
+
       const result = createProjectFromTemplate({
         projectName: parsed.projectName,
         targetDir: parsed.targetDir,
-        templateRoot: REPO_ROOT
+        templateRoot: REPO_ROOT,
+        contextContent
       });
 
       sendJson(res, 200, result);
