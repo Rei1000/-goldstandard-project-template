@@ -35,6 +35,25 @@ function firstMeaningfulContextLine(contextText) {
 }
 
 function generateProjectReadme(projectName, contextText) {
+  if (!String(contextText || "").trim()) {
+    return [
+      `# ${projectName}`,
+      "",
+      "## Kurzbeschreibung",
+      "Projekt wurde aus dem Goldstandard-Template initialisiert.",
+      "",
+      "## Ziel des Projekts",
+      "Der fachliche Projektkontext wird nach Abschluss des GPT-Workflows ergänzt.",
+      "",
+      "## Nächste fachliche Schritte",
+      "- GPT-Prompts 01-05 im Goldstandard-Launcher durchführen",
+      "- Danach den erzeugten Kontext als `.goldstandard/context.txt` übernehmen",
+      "",
+      "## Hinweise",
+      "- Projektdokumentation und Architektur: `docs/`"
+    ].join("\n");
+  }
+
   const summary = firstMeaningfulContextLine(contextText) || "Projektbeschreibung siehe Kontextdatei.";
   return [
     `# ${projectName}`,
@@ -88,10 +107,6 @@ export function createProjectFromTemplate(options) {
   if (!path.isAbsolute(templateRoot)) {
     throw new Error("templateRoot muss als absoluter Pfad angegeben werden.");
   }
-  if (!contextContent) {
-    throw new Error("Kein verwertbarer Projektkontext vorhanden. Bitte zuerst im Launcher speichern.");
-  }
-
   const targetDirResolved = path.resolve(targetDirInput);
   const templateRootResolved = path.resolve(templateRoot);
 
@@ -128,7 +143,9 @@ export function createProjectFromTemplate(options) {
 
   const projectContextDir = path.join(projectPath, ".goldstandard");
   fs.mkdirSync(projectContextDir, { recursive: true });
-  fs.writeFileSync(path.join(projectContextDir, "context.txt"), contextContent, "utf8");
+  if (contextContent) {
+    fs.writeFileSync(path.join(projectContextDir, "context.txt"), contextContent, "utf8");
+  }
 
   const readmePath = path.join(projectPath, "README.md");
   fs.writeFileSync(readmePath, generateProjectReadme(projectName, contextContent), "utf8");
