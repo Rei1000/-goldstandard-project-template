@@ -27,6 +27,8 @@ function setupTemplateRoot() {
     "infra",
     "cli",
     "prompts",
+    "prompts/agent",
+    "prompts/gpt",
     "meta"
   ];
   for (const dir of requiredDirs) {
@@ -38,7 +40,13 @@ function setupTemplateRoot() {
   writeFile(path.join(templateRoot, ".github", "CODEOWNERS"), "* @team\n");
   writeFile(path.join(templateRoot, ".cursor", "cursor.rules"), "rules\n");
   writeFile(path.join(templateRoot, "docs", "architecture.md"), "arch\n");
-  writeFile(path.join(templateRoot, "prompts", "gpt.md"), "gpt\n");
+  writeFile(path.join(templateRoot, "prompts", "gpt", "01-gpt-project-start.md"), "gpt-01\n");
+  writeFile(path.join(templateRoot, "prompts", "gpt", "05-gpt-agent-handover.md"), "gpt-05\n");
+  writeFile(path.join(templateRoot, "prompts", "agent", "00-agent-task-frame.md"), "task-frame\n");
+  writeFile(path.join(templateRoot, "prompts", "agent", "01-agent-project-bootstrap.md"), "agent-01\n");
+  writeFile(path.join(templateRoot, "prompts", "agent", "02-agent-write-pflichtenheft.md"), "agent-02\n");
+  writeFile(path.join(templateRoot, "prompts", "agent", "03-agent-architecture-setup.md"), "agent-03\n");
+  writeFile(path.join(templateRoot, "prompts", "agent", "04-agent-project-structure.md"), "agent-04\n");
   writeFile(path.join(templateRoot, "meta", "plan.md"), "plan\n");
   writeFile(path.join(templateRoot, "backend", "app.py"), "print('x')\n");
   writeFile(path.join(templateRoot, "frontend", "app.ts"), "export {};\n");
@@ -129,7 +137,35 @@ test("kopiert Template-Artefakte nicht ins Zielprojekt", () => {
 
   assert.equal(fs.existsSync(path.join(result.projectPath, "launcher")), false);
   assert.equal(fs.existsSync(path.join(result.projectPath, "meta")), false);
-  assert.equal(fs.existsSync(path.join(result.projectPath, "prompts")), false);
+  assert.equal(fs.existsSync(path.join(result.projectPath, "prompts", "gpt")), false);
+});
+
+test("behält agent-prompts und entfernt gpt-prompts im Zielprojekt", () => {
+  const templateRoot = setupTemplateRoot();
+  const targetDir = makeTempDir("goldstandard-target-");
+  const result = createProjectFromTemplate({
+    projectName: "prompt-selection-check",
+    targetDir,
+    templateRoot,
+    contextContent: "Projektkontext: Prompt-Auswahl."
+  });
+
+  const projectPath = result.projectPath;
+  assert.equal(fs.existsSync(path.join(projectPath, "prompts", "agent")), true);
+  assert.equal(fs.existsSync(path.join(projectPath, "prompts", "gpt")), false);
+  for (const requiredPrompt of [
+    "00-agent-task-frame.md",
+    "01-agent-project-bootstrap.md",
+    "02-agent-write-pflichtenheft.md",
+    "03-agent-architecture-setup.md",
+    "04-agent-project-structure.md"
+  ]) {
+    assert.equal(
+      fs.existsSync(path.join(projectPath, "prompts", "agent", requiredPrompt)),
+      true,
+      `Fehlender Agent-Prompt: ${requiredPrompt}`
+    );
+  }
 });
 
 test("übernimmt .goldstandard/context.txt ins Zielprojekt, wenn Kontext vorhanden ist", () => {

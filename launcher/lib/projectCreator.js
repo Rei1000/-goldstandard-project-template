@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import { spawnSync } from "node:child_process";
 
-const EXCLUDED_ROOT_ENTRIES = new Set([".git", ".goldstandard", "launcher", "meta", "prompts"]);
+const EXCLUDED_ROOT_ENTRIES = new Set([".git", ".goldstandard", "launcher", "meta"]);
 
 function isValidProjectName(name) {
   return typeof name === "string" && /^[a-zA-Z0-9._-]{2,100}$/.test(name);
@@ -22,6 +22,11 @@ function copyTemplateRecursive(sourceDir, targetDir) {
       fs.copyFileSync(srcPath, destPath);
     }
   }
+}
+
+function removeIfExists(targetPath) {
+  if (!fs.existsSync(targetPath)) return;
+  fs.rmSync(targetPath, { recursive: true, force: true });
 }
 
 function firstMeaningfulContextLine(contextText) {
@@ -140,6 +145,9 @@ export function createProjectFromTemplate(options) {
       fs.copyFileSync(srcPath, destPath);
     }
   }
+
+  // Keep agent prompts for generated projects, remove GPT prompts from template scaffolding.
+  removeIfExists(path.join(projectPath, "prompts", "gpt"));
 
   const projectContextDir = path.join(projectPath, ".goldstandard");
   fs.mkdirSync(projectContextDir, { recursive: true });
