@@ -57,6 +57,87 @@ h2 {
   line-height: 1.45;
 }
 
+.gpt-wizard {
+  display: grid;
+  gap: 10px;
+}
+
+.gpt-accordion-item {
+  border: 1px solid #d9e2ec;
+  border-radius: 8px;
+  background: #f8fafc;
+  overflow: hidden;
+}
+
+.gpt-accordion-item.active {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.gpt-accordion-item.done {
+  border-color: #16a34a;
+  background: #f0fdf4;
+}
+
+.gpt-accordion-item.locked {
+  border-color: #e2e8f0;
+  background: #f8fafc;
+}
+
+.gpt-accordion-head {
+  width: 100%;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #102a43;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+  font-weight: 700;
+  padding: 12px;
+}
+
+.gpt-accordion-head:disabled {
+  opacity: 1;
+  cursor: not-allowed;
+  color: #64748b;
+}
+
+.gpt-status-text {
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+
+.gpt-accordion-panel {
+  display: none;
+  padding: 0 12px 12px;
+}
+
+.gpt-accordion-panel.open {
+  display: block;
+}
+
+.gpt-prompt-content {
+  margin-bottom: 10px;
+}
+
+.gpt-inline-feedback {
+  margin: 8px 0 0;
+  font-size: 0.88rem;
+  color: #1d4ed8;
+}
+
+.gpt-complete-hint {
+  margin: 12px 0 0;
+  border: 1px solid #86efac;
+  border-radius: 8px;
+  background: #dcfce7;
+  color: #166534;
+  padding: 10px 12px;
+  font-weight: 600;
+}
+
 .taskframe-note {
   margin: 0 0 10px;
   border: 1px solid #bfdbfe;
@@ -558,18 +639,6 @@ button:hover {
 .step-intro {
   margin-top: 0;
   color: #486581;
-}
-
-.prompt-viewer {
-  margin-top: 12px;
-  border: 1px solid #d9e2ec;
-  border-radius: 8px;
-  padding: 12px;
-  background: #fbfdff;
-}
-
-.prompt-viewer h3 {
-  margin-top: 0;
 }
 
 .visually-hidden {

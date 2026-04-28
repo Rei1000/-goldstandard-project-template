@@ -1,9 +1,6 @@
-const gptList = document.getElementById("gpt-list");
+const gptWizard = document.getElementById("gpt-wizard");
 const agentList = document.getElementById("agent-list");
-const promptPath = document.getElementById("prompt-path");
-const promptContent = document.getElementById("prompt-content");
-const copyPromptBtn = document.getElementById("copyPromptBtn");
-const copyPromptFeedback = document.getElementById("copy-prompt-feedback");
+const gptCompleteHint = document.getElementById("gpt-complete-hint");
 const contextInput = document.getElementById("context-input");
 const saveContextBtn = document.getElementById("save-context");
 const loadContextBtn = document.getElementById("load-context");
@@ -24,40 +21,40 @@ const cursorStepHint = document.getElementById("cursor-step-hint");
 
 const TASK_FRAME_REF = "prompts/agent/00-agent-task-frame.md";
 const WORKFLOW_PROMPT_PATH = "prompts/agent/01-agent-run-workflow.md";
+const GPT_PROMPTS = [
+  { path: "prompts/gpt/01-gpt-project-start.md", title: "Prompt 01" },
+  { path: "prompts/gpt/02-gpt-project-definition.md", title: "Prompt 02" },
+  { path: "prompts/gpt/03-gpt-usecase-definition.md", title: "Prompt 03" },
+  { path: "prompts/gpt/04-gpt-pflichtenheft-prep.md", title: "Prompt 04" },
+  { path: "prompts/gpt/05-gpt-agent-handover.md", title: "Prompt 05" }
+];
 
 const STEP_IDS = ["project", "gpt", "context", "workflow", "cursor"];
 const state = {
   projectCreated: false,
-  gptCopiedCount: 0,
+  gptCompletedCount: 0,
   contextSaved: false,
   workflowBuilt: false,
   workflowCopied: false
 };
 
-let currentPromptContent = "";
-let currentPromptPath = "";
-let currentPromptPhase = null;
-let activePromptButton = null;
 let selectedAgentPath = null;
 let selectedAgentContent = null;
-const copiedGptPrompts = new Set();
+let activePromptButton = null;
+let gptPromptContentByPath = {};
+let gptActiveIndex = 0;
+let gptCompleted = [false, false, false, false, false];
+let gptExpandedIndex = 0;
 
 function setStatus(message, isError = false) {
   statusMessage.textContent = message;
   statusMessage.style.color = isError ? "#b42318" : "#334e68";
 }
 
-function setCopyPromptFeedback(message) {
-  copyPromptFeedback.textContent = message;
-  if (!message) return;
-  window.setTimeout(() => {
-    if (copyPromptFeedback.textContent === message) copyPromptFeedback.textContent = "";
-  }, 1800);
-}
-
 function updateGptFlowHint(promptPathValue) {
   if (promptPathValue === "prompts/gpt/01-gpt-project-start.md") {
-    gptFlowHint.textContent = "Kopiere diesen Prompt in einen neuen ChatGPT-Chat. Bleibe danach im selben Chat.";
+    gptFlowHint.textContent =
+      "→ Aktiv: Prompt 01. Kopiere ihn in einen neuen ChatGPT-Chat. Danach im selben Chat bleiben.";
     return;
   }
   if (
@@ -66,16 +63,15 @@ function updateGptFlowHint(promptPathValue) {
     promptPathValue === "prompts/gpt/04-gpt-pflichtenheft-prep.md"
   ) {
     gptFlowHint.textContent =
-      "Kopiere diesen Prompt in denselben ChatGPT-Chat. Beantworte Rückfragen und gehe danach zum nächsten GPT-Prompt.";
+      "→ Aktiv: Diesen Prompt in denselben ChatGPT-Chat kopieren, ausführen und danach hier „Schritt erledigt“ bestätigen.";
     return;
   }
   if (promptPathValue === "prompts/gpt/05-gpt-agent-handover.md") {
     gptFlowHint.textContent =
-      "Kopiere diesen Prompt in denselben ChatGPT-Chat. Übernimm danach den erzeugten PROJEKTKONTEXT in Schritt 3.";
+      "→ Aktiv: Prompt 05 ausführen. Danach den finalen PROJEKTKONTEXT aus ChatGPT übernehmen und in Schritt 3 speichern.";
     return;
   }
-  gptFlowHint.textContent =
-    "Wähle den nächsten GPT-Prompt. Der Wizard markiert kopierte Prompts und führt dich danach zum Kontext-Schritt.";
+  gptFlowHint.textContent = "Prompt-Wizard geladen. Nur der aktuell aktive Prompt ist ausführbar.";
 }
 
 function inferStepState(stepId) {
@@ -83,7 +79,7 @@ function inferStepState(stepId) {
   if (stepId === "gpt") return state.projectCreated ? "active" : "locked";
   if (stepId === "context") {
     if (!state.projectCreated) return "locked";
-    return state.gptCopiedCount > 0 ? "active" : "upcoming";
+    return state.gptCompletedCount === GPT_PROMPTS.length ? "active" : "upcoming";
   }
   if (stepId === "workflow") {
     if (!state.projectCreated) return "locked";
@@ -98,7 +94,7 @@ function inferStepState(stepId) {
 
 function stepBadgeText(stepId, stepState) {
   if (stepId === "project" && state.projectCreated) return "Erledigt";
-  if (stepId === "gpt" && state.gptCopiedCount > 0) return `${state.gptCopiedCount} kopiert`;
+  if (stepId === "gpt" && state.gptCompletedCount > 0) return `${state.gptCompletedCount}/5 erledigt`;
   if (stepId === "context" && state.contextSaved) return "Gespeichert";
   if (stepId === "workflow" && state.workflowBuilt) return "Erzeugt";
   if (stepId === "cursor" && state.workflowCopied) return "Bereit";
@@ -142,7 +138,7 @@ function updateStepper() {
   }
 
   setSectionEnabled("step-gpt", state.projectCreated);
-  setSectionEnabled("step-context", state.projectCreated);
+  setSectionEnabled("step-context", state.projectCreated && state.gptCompletedCount === GPT_PROMPTS.length);
   setSectionEnabled("step-workflow", state.projectCreated && state.contextSaved);
   setSectionEnabled("step-agent-prompts", state.projectCreated);
   setSectionEnabled("step-cursor", state.projectCreated && state.workflowBuilt);
@@ -163,36 +159,6 @@ function updateHandoverAgentDisplay() {
   } else {
     handoverAgentPath.textContent = `Alternativ gewählt: ${selectedAgentPath}`;
   }
-}
-
-async function loadPromptContentByPath(promptPathValue, phaseLabel = null, button = null, options = {}) {
-  const viewOnly = Boolean(options.viewOnly);
-  const result = await fetchJson(`/api/prompt?path=${encodeURIComponent(promptPathValue)}`);
-  if (activePromptButton) activePromptButton.classList.remove("active");
-  if (button && !viewOnly) {
-    activePromptButton = button;
-    activePromptButton.classList.add("active");
-  } else {
-    activePromptButton = null;
-  }
-
-  promptPath.textContent = `Pfad: ${result.path}`;
-  currentPromptContent = result.content || "";
-  currentPromptPath = result.path || "";
-  currentPromptPhase = phaseLabel;
-  promptContent.textContent = currentPromptContent;
-  copyPromptBtn.disabled = currentPromptContent.trim().length === 0;
-  setCopyPromptFeedback("");
-
-  if (promptPathValue.startsWith("prompts/agent/") && !viewOnly) {
-    selectedAgentPath = result.path;
-    selectedAgentContent = result.content || "";
-  } else if (!promptPathValue.startsWith("prompts/agent/")) {
-    selectedAgentPath = null;
-    selectedAgentContent = null;
-  }
-  updateHandoverAgentDisplay();
-  updateGptFlowHint(currentPromptPath);
 }
 
 function renderPromptList(targetList, prompts, phaseLabel) {
@@ -216,8 +182,8 @@ function renderPromptList(targetList, prompts, phaseLabel) {
       btn.type = "button";
       btn.textContent = "Anzeigen";
       btn.addEventListener("click", async () => {
-        await loadPromptContentByPath(promptPathValue, phaseLabel, null, { viewOnly: true });
-        setStatus("Task Frame angezeigt (nur Ansicht).");
+        await fetchJson(`/api/prompt?path=${encodeURIComponent(promptPathValue)}`);
+        setStatus("Task Frame angezeigt (Pflichtregel, nicht ausführbar).");
       });
       li.appendChild(btn);
       targetList.appendChild(li);
@@ -225,32 +191,150 @@ function renderPromptList(targetList, prompts, phaseLabel) {
     }
 
     const li = document.createElement("li");
-    const row = document.createElement("div");
-    row.className = "prompt-item-row";
     const btn = document.createElement("button");
     btn.className = "prompt-item";
     btn.textContent = promptPathValue;
     btn.addEventListener("click", async () => {
-      await loadPromptContentByPath(promptPathValue, phaseLabel, btn);
-      setStatus(`${phaseLabel}-Prompt geladen.`);
+      const result = await fetchJson(`/api/prompt?path=${encodeURIComponent(promptPathValue)}`);
+      if (activePromptButton) activePromptButton.classList.remove("active");
+      activePromptButton = btn;
+      btn.classList.add("active");
+      selectedAgentPath = result.path;
+      selectedAgentContent = result.content || "";
+      updateHandoverAgentDisplay();
+      setStatus("Alternativer Agent-Prompt ausgewählt.");
     });
-    row.appendChild(btn);
-    if (phaseLabel === "GPT") {
-      const badge = document.createElement("span");
-      badge.className = "prompt-copy-badge";
-      badge.dataset.copyBadgeFor = promptPathValue;
-      badge.textContent = "Kopiert ✓";
-      badge.style.visibility = copiedGptPrompts.has(promptPathValue) ? "visible" : "hidden";
-      row.appendChild(badge);
-    }
-    li.appendChild(row);
+    li.appendChild(btn);
     targetList.appendChild(li);
+  });
+}
+
+function gptStatusLabel(idx) {
+  if (gptCompleted[idx]) return "✔ erledigt";
+  if (idx === gptActiveIndex) return "→ aktiv";
+  return "🔒 gesperrt";
+}
+
+async function copyGptPrompt(idx) {
+  const prompt = GPT_PROMPTS[idx];
+  if (idx !== gptActiveIndex || gptCompleted[idx]) return;
+  if (!gptPromptContentByPath[prompt.path]) {
+    const result = await fetchJson(`/api/prompt?path=${encodeURIComponent(prompt.path)}`);
+    gptPromptContentByPath[prompt.path] = result.content || "";
+  }
+  await navigator.clipboard.writeText(gptPromptContentByPath[prompt.path]);
+  setStatus("Prompt kopiert.");
+  updateGptFlowHint(prompt.path);
+  const feedback = document.querySelector(`[data-gpt-feedback='${idx}']`);
+  if (feedback) {
+    feedback.textContent =
+      "→ Füge den Prompt jetzt in ChatGPT ein und führe ihn dort aus. Danach hier zurückkommen und Schritt abschließen.";
+  }
+}
+
+function completeGptPrompt(idx) {
+  if (idx !== gptActiveIndex || gptCompleted[idx]) return;
+  gptCompleted[idx] = true;
+  state.gptCompletedCount = gptCompleted.filter(Boolean).length;
+  if (gptActiveIndex < GPT_PROMPTS.length - 1) {
+    gptActiveIndex += 1;
+    gptExpandedIndex = gptActiveIndex;
+    updateGptFlowHint(GPT_PROMPTS[gptActiveIndex].path);
+  } else {
+    gptExpandedIndex = -1;
+    updateGptFlowHint("");
+    if (gptCompleteHint) gptCompleteHint.classList.remove("is-hidden");
+    setStatus("GPT-Phase abgeschlossen. Weiter mit Schritt 3: Projektkontext speichern.");
+  }
+  localStorage.setItem(
+    "gs.gptWizardState",
+    JSON.stringify({ completed: gptCompleted, activeIndex: gptActiveIndex, expandedIndex: gptExpandedIndex })
+  );
+  updateStepper();
+  renderGptWizard();
+}
+
+function togglePromptPanel(idx) {
+  if (idx > gptActiveIndex && !gptCompleted[idx]) return;
+  gptExpandedIndex = gptExpandedIndex === idx ? -1 : idx;
+  localStorage.setItem(
+    "gs.gptWizardState",
+    JSON.stringify({ completed: gptCompleted, activeIndex: gptActiveIndex, expandedIndex: gptExpandedIndex })
+  );
+  renderGptWizard();
+}
+
+function renderGptWizard() {
+  gptWizard.innerHTML = "";
+  if (gptCompleteHint) {
+    gptCompleteHint.classList.toggle("is-hidden", state.gptCompletedCount !== GPT_PROMPTS.length);
+  }
+  GPT_PROMPTS.forEach((prompt, idx) => {
+    const item = document.createElement("article");
+    item.className = "gpt-accordion-item";
+    const isDone = gptCompleted[idx];
+    const isActive = idx === gptActiveIndex && !isDone;
+    const isLocked = !isDone && idx > gptActiveIndex;
+    if (isActive) item.classList.add("active");
+    if (isDone) item.classList.add("done");
+    if (isLocked) item.classList.add("locked");
+
+    const head = document.createElement("button");
+    head.type = "button";
+    head.className = "gpt-accordion-head";
+    head.innerHTML = `<span>${prompt.title}</span><span class="gpt-status-text">${gptStatusLabel(idx)}</span>`;
+    head.addEventListener("click", () => togglePromptPanel(idx));
+    if (isLocked) head.disabled = true;
+    item.appendChild(head);
+
+    const panel = document.createElement("div");
+    panel.className = "gpt-accordion-panel";
+    const shouldOpen = isActive || gptExpandedIndex === idx;
+    panel.classList.toggle("open", shouldOpen);
+
+    if (shouldOpen && !isLocked) {
+      const content = gptPromptContentByPath[prompt.path] || "Prompt wird geladen...";
+      panel.innerHTML = `
+        <pre class="prompt-content gpt-prompt-content">${content}</pre>
+        <div class="button-row">
+          <button type="button" class="secondary" data-gpt-copy="${idx}">Prompt kopieren</button>
+          <button type="button" data-gpt-done="${idx}" ${isDone ? "disabled" : ""}>Schritt erledigt</button>
+        </div>
+        <p class="gpt-inline-feedback" data-gpt-feedback="${idx}" aria-live="polite"></p>
+      `;
+    }
+    item.appendChild(panel);
+    gptWizard.appendChild(item);
+
+    if (shouldOpen && !isLocked && !gptPromptContentByPath[prompt.path]) {
+      fetchJson(`/api/prompt?path=${encodeURIComponent(prompt.path)}`)
+        .then((result) => {
+          gptPromptContentByPath[prompt.path] = result.content || "";
+          renderGptWizard();
+        })
+        .catch((error) => setStatus(`GPT-Prompt konnte nicht geladen werden: ${error.message}`, true));
+    }
+  });
+
+  gptWizard.querySelectorAll("[data-gpt-copy]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      copyGptPrompt(Number(btn.dataset.gptCopy)).catch((e) => setStatus(e.message, true));
+    });
+  });
+  gptWizard.querySelectorAll("[data-gpt-done]").forEach((btn) => {
+    btn.addEventListener("click", () => completeGptPrompt(Number(btn.dataset.gptDone)));
   });
 }
 
 async function loadPrompts() {
   const [gptData, agentData] = await Promise.all([fetchJson("/api/prompts/gpt"), fetchJson("/api/prompts/agent")]);
-  renderPromptList(gptList, gptData.prompts, "GPT");
+  const gptFromRepo = gptData.prompts || [];
+  for (const prompt of GPT_PROMPTS) {
+    if (!gptFromRepo.includes(prompt.path)) {
+      throw new Error(`Erwarteter GPT-Prompt fehlt: ${prompt.path}`);
+    }
+  }
+  renderGptWizard();
   renderPromptList(agentList, agentData.prompts, "Agent");
 }
 
@@ -436,29 +520,32 @@ async function loadContext() {
   }
 }
 
-async function copyPrompt() {
-  if (!currentPromptContent.trim()) {
-    setStatus("Kein Prompt zum Kopieren geladen.", true);
-    return;
-  }
-  await navigator.clipboard.writeText(currentPromptContent);
-  if (currentPromptPhase === "GPT" && currentPromptPath) {
-    copiedGptPrompts.add(currentPromptPath);
-    state.gptCopiedCount = copiedGptPrompts.size;
-    const badge = document.querySelector(`[data-copy-badge-for="${CSS.escape(currentPromptPath)}"]`);
-    if (badge) badge.style.visibility = "visible";
-    updateStepper();
-  }
-  setCopyPromptFeedback("Prompt kopiert ✓");
-  setStatus("Prompt kopiert.");
-}
-
 function setupDefaults() {
   const savedTarget = localStorage.getItem("gs.targetDir");
   targetDirInput.value = savedTarget || "/Users/<dein-name>/Projects";
+  const savedWizard = localStorage.getItem("gs.gptWizardState");
+  if (savedWizard) {
+    try {
+      const parsed = JSON.parse(savedWizard);
+      if (Array.isArray(parsed.completed) && parsed.completed.length === GPT_PROMPTS.length) {
+        gptCompleted = parsed.completed.map(Boolean);
+      }
+      if (Number.isInteger(parsed.activeIndex)) {
+        gptActiveIndex = Math.min(Math.max(parsed.activeIndex, 0), GPT_PROMPTS.length - 1);
+      }
+      if (Number.isInteger(parsed.expandedIndex)) {
+        gptExpandedIndex = parsed.expandedIndex;
+      }
+    } catch {
+      // ignore invalid local state
+    }
+  }
+  state.gptCompletedCount = gptCompleted.filter(Boolean).length;
+  if (state.gptCompletedCount === GPT_PROMPTS.length && gptCompleteHint) {
+    gptCompleteHint.classList.remove("is-hidden");
+  }
 }
 
-copyPromptBtn.addEventListener("click", () => copyPrompt().catch((e) => setStatus(e.message, true)));
 saveContextBtn.addEventListener("click", () => saveContext().catch((e) => setStatus(e.message, true)));
 loadContextBtn.addEventListener("click", () => loadContext().catch((e) => setStatus(e.message, true)));
 createProjectBtn.addEventListener("click", () => createProject().catch((e) => setStatus(e.message, true)));
@@ -467,12 +554,10 @@ copyAgentInputBtn.addEventListener("click", () => copyFullAgentInput().catch((e)
 
 async function init() {
   setupDefaults();
-  promptContent.textContent = "Wähle einen Prompt, um den Inhalt anzuzeigen.";
-  copyPromptBtn.disabled = true;
   await loadPrompts();
   updateHandoverAgentDisplay();
   await refreshHandoverContextState();
-  updateGptFlowHint("");
+  updateGptFlowHint(GPT_PROMPTS[Math.min(gptActiveIndex, GPT_PROMPTS.length - 1)]?.path || "");
   updateStepper();
 }
 

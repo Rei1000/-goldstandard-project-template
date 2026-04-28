@@ -61,20 +61,16 @@
           <span id="badge-gpt" class="step-badge">Warten auf Schritt 1</span>
         </div>
         <p id="gpt-flow-hint" class="gpt-flow-hint">
-          Nach erfolgreicher Projektanlage: GPT-Prompt wählen, kopieren und im selben ChatGPT-Workflow
-          schrittweise bearbeiten.
+          Nach erfolgreicher Projektanlage führt dich dieser Wizard strikt durch GPT-Prompt 01 bis 05.
         </p>
-        <ul id="gpt-list" class="prompt-list"></ul>
-
-        <div class="prompt-viewer">
-          <h3>Ausgewählter Prompt</h3>
-          <div class="prompt-toolbar">
-            <button id="copyPromptBtn" class="secondary" disabled>Prompt kopieren</button>
-            <span id="copy-prompt-feedback" class="copy-prompt-feedback" aria-live="polite"></span>
-          </div>
-          <p id="prompt-path" class="path-label">Kein Prompt ausgewählt.</p>
-          <pre id="prompt-content" class="prompt-content"></pre>
-        </div>
+        <div id="gpt-wizard" class="gpt-wizard"></div>
+        <p id="gpt-complete-hint" class="gpt-complete-hint is-hidden" aria-live="polite">
+          Alle GPT-Prompts abgeschlossen.
+          <br />
+          → Kopiere jetzt den finalen PROJEKTKONTEXT aus ChatGPT
+          <br />
+          → Füge ihn in Schritt 3 ein.
+        </p>
       </section>
 
       <section id="step-context" class="card wizard-step is-locked" aria-disabled="true">
