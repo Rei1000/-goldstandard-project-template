@@ -3,6 +3,7 @@ import assert from "node:assert";
 import fs from "fs";
 import os from "os";
 import path from "path";
+import { execSync } from "node:child_process";
 import { createProjectFromTemplate } from "../lib/projectCreator.js";
 
 function makeTempDir(prefix) {
@@ -21,11 +22,12 @@ function setupTemplateRoot() {
     ".github",
     ".cursor",
     "docs",
-    "prompts",
-    "meta",
     "backend",
     "frontend",
-    "infra"
+    "infra",
+    "cli",
+    "prompts",
+    "meta"
   ];
   for (const dir of requiredDirs) {
     fs.mkdirSync(path.join(templateRoot, dir), { recursive: true });
@@ -41,6 +43,9 @@ function setupTemplateRoot() {
   writeFile(path.join(templateRoot, "backend", "app.py"), "print('x')\n");
   writeFile(path.join(templateRoot, "frontend", "app.ts"), "export {};\n");
   writeFile(path.join(templateRoot, "infra", "main.tf"), "resource {}\n");
+  writeFile(path.join(templateRoot, "cli", "index.js"), "console.log('cli')\n");
+  writeFile(path.join(templateRoot, ".env.example"), "PORT=3000\n");
+  writeFile(path.join(templateRoot, ".gitignore"), "node_modules/\n");
 
   fs.mkdirSync(path.join(templateRoot, ".git"), { recursive: true });
   writeFile(path.join(templateRoot, ".git", "config"), "dummy");
@@ -58,7 +63,8 @@ test("erstellt Projektordner unter targetDir/projectName", () => {
   const result = createProjectFromTemplate({
     projectName: "my-project",
     targetDir,
-    templateRoot
+    templateRoot,
+    contextContent: "Projektkontext: Testlauf."
   });
 
   assert.equal(result.success, true);
@@ -66,17 +72,18 @@ test("erstellt Projektordner unter targetDir/projectName", () => {
   assert.equal(fs.existsSync(result.projectPath), true);
 });
 
-test("kopiert wichtige Template-Ordner", () => {
+test("kopiert notwendige Zielstruktur-Ordner", () => {
   const templateRoot = setupTemplateRoot();
   const targetDir = makeTempDir("goldstandard-target-");
   const result = createProjectFromTemplate({
     projectName: "copy-dirs",
     targetDir,
-    templateRoot
+    templateRoot,
+    contextContent: "Projektkontext: Struktur."
   });
 
   const projectPath = result.projectPath;
-  for (const dir of [".github", ".cursor", "docs", "prompts", "meta"]) {
+  for (const dir of [".github", ".cursor", "docs", "backend", "frontend", "infra", "cli"]) {
     assert.equal(fs.existsSync(path.join(projectPath, dir)), true, `Fehlender Ordner: ${dir}`);
   }
 });
@@ -87,55 +94,90 @@ test("kopiert wichtige Root-Dateien", () => {
   const result = createProjectFromTemplate({
     projectName: "copy-files",
     targetDir,
-    templateRoot
+    templateRoot,
+    contextContent: "Projektkontext: Root-Dateien."
   });
 
   assert.equal(fs.existsSync(path.join(result.projectPath, "README.md")), true);
   assert.equal(fs.existsSync(path.join(result.projectPath, "docker-compose.yml")), true);
+  assert.equal(fs.existsSync(path.join(result.projectPath, ".env.example")), true);
+  assert.equal(fs.existsSync(path.join(result.projectPath, ".gitignore")), true);
 });
 
-test("kopiert ausgeschlossene Pfade nicht", () => {
+test("kopiert Template-Artefakte nicht ins Zielprojekt", () => {
   const templateRoot = setupTemplateRoot();
   const targetDir = makeTempDir("goldstandard-target-");
   const result = createProjectFromTemplate({
     projectName: "exclude-check",
     targetDir,
-    templateRoot
+    templateRoot,
+    contextContent: "Projektkontext: Exclusions."
   });
 
-  assert.equal(fs.existsSync(path.join(result.projectPath, ".git")), false);
-  assert.equal(fs.existsSync(path.join(result.projectPath, ".goldstandard", "context.txt")), false);
   assert.equal(fs.existsSync(path.join(result.projectPath, "launcher")), false);
+  assert.equal(fs.existsSync(path.join(result.projectPath, "meta")), false);
+  assert.equal(fs.existsSync(path.join(result.projectPath, "prompts")), false);
 });
 
-test("erzeugt .goldstandard/project-config.json", () => {
+test("übernimmt .goldstandard/context.txt ins Zielprojekt", () => {
   const templateRoot = setupTemplateRoot();
   const targetDir = makeTempDir("goldstandard-target-");
+  const contextContent = "PROJEKTKONTEXT\n\nZiel: Eine saubere Testplattform.";
   const result = createProjectFromTemplate({
     projectName: "config-check",
     targetDir,
-    templateRoot
+    templateRoot,
+    contextContent
   });
 
-  const configPath = path.join(result.projectPath, ".goldstandard", "project-config.json");
-  assert.equal(fs.existsSync(configPath), true);
-  const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
-  assert.equal(config.projectName, "config-check");
-  assert.equal(config.templateSource, path.resolve(templateRoot));
-  assert.equal(typeof config.createdAt, "string");
+  const contextPath = path.join(result.projectPath, ".goldstandard", "context.txt");
+  assert.equal(fs.existsSync(contextPath), true);
+  assert.equal(fs.readFileSync(contextPath, "utf8"), contextContent);
 });
 
-test("ersetzt generischen README-Titel durch Projektname", () => {
+test("erstellt projektspezifische README mit Kontext-Hinweis", () => {
   const templateRoot = setupTemplateRoot();
   const targetDir = makeTempDir("goldstandard-target-");
+  const contextContent = "Kurzbeschreibung: Testplattform\nZiel: End-to-end Build";
   const result = createProjectFromTemplate({
     projectName: "renamed-project",
     targetDir,
-    templateRoot
+    templateRoot,
+    contextContent
   });
 
   const readme = fs.readFileSync(path.join(result.projectPath, "README.md"), "utf8");
   assert.ok(readme.startsWith("# renamed-project"));
+  assert.ok(readme.includes("## Kurzbeschreibung"));
+  assert.ok(readme.includes("## Ziel des Projekts"));
+  assert.ok(readme.includes(".goldstandard/context.txt"));
+  assert.ok(readme.includes("docs/"));
+});
+
+test("initialisiert Git-Repository und erstellt Initial-Commit", () => {
+  const templateRoot = setupTemplateRoot();
+  const targetDir = makeTempDir("goldstandard-target-");
+  const result = createProjectFromTemplate({
+    projectName: "git-ready",
+    targetDir,
+    templateRoot,
+    contextContent: "Kontext für Initial-Commit."
+  });
+
+  const projectPath = result.projectPath;
+  assert.equal(fs.existsSync(path.join(projectPath, ".git")), true);
+  const head = execSync("git rev-parse --verify HEAD", { cwd: projectPath, encoding: "utf8" }).trim();
+  assert.ok(head.length > 0);
+  const trackedContext = execSync("git ls-files .goldstandard/context.txt", {
+    cwd: projectPath,
+    encoding: "utf8"
+  }).trim();
+  assert.equal(trackedContext, ".goldstandard/context.txt");
+  const commitMessage = execSync("git log -1 --pretty=%s", {
+    cwd: projectPath,
+    encoding: "utf8"
+  }).trim();
+  assert.equal(commitMessage, "chore: initialize git-ready from goldstandard template");
 });
 
 test("bricht ab, wenn Zielordner bereits existiert", () => {
@@ -149,7 +191,8 @@ test("bricht ab, wenn Zielordner bereits existiert", () => {
       createProjectFromTemplate({
         projectName: "already-there",
         targetDir,
-        templateRoot
+        templateRoot,
+        contextContent: "ctx"
       }),
     /Projektordner existiert bereits/
   );
@@ -163,7 +206,8 @@ test("bricht ab, wenn targetDir nicht absoluter Pfad ist", () => {
       createProjectFromTemplate({
         projectName: "invalid-target",
         targetDir: "relative/path",
-        templateRoot
+        templateRoot,
+        contextContent: "ctx"
       }),
     /absoluter Pfad/
   );
@@ -178,8 +222,25 @@ test("bricht ab, wenn projectName ungültig ist", () => {
       createProjectFromTemplate({
         projectName: "x",
         targetDir,
-        templateRoot
+        templateRoot,
+        contextContent: "ctx"
       }),
     /Ungültiger Projektname/
+  );
+});
+
+test("bricht ab, wenn kein verwertbarer Kontext übergeben wurde", () => {
+  const templateRoot = setupTemplateRoot();
+  const targetDir = makeTempDir("goldstandard-target-");
+
+  assert.throws(
+    () =>
+      createProjectFromTemplate({
+        projectName: "missing-context",
+        targetDir,
+        templateRoot,
+        contextContent: "   "
+      }),
+    /Kein verwertbarer Projektkontext/
   );
 });
