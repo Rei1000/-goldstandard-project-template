@@ -61,9 +61,81 @@ h2 {
   font-size: 0.88em;
 }
 
+.gpt-flow-hint {
+  margin: 0 0 10px;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #1e3a8a;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.list-sub-strong {
+  color: #1e3a8a;
+  font-weight: 600;
+}
+
+.taskframe-note {
+  margin: 0 0 10px;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #1e3a8a;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.taskframe-note code {
+  background: #dbeafe;
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
 .prompt-list li {
   margin-bottom: 8px;
   list-style: none;
+}
+
+.taskframe-list-item {
+  border: 1px solid #d1d5db;
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.taskframe-title {
+  margin: 0 0 4px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.taskframe-subtitle {
+  margin: 0 0 8px;
+  color: #475569;
+  font-size: 0.88rem;
+}
+
+.taskframe-actions {
+  display: flex;
+}
+
+.prompt-item-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.prompt-copy-badge {
+  font-size: 0.75rem;
+  border-radius: 999px;
+  padding: 2px 8px;
+  border: 1px solid #86efac;
+  background: #dcfce7;
+  color: #166534;
+  white-space: nowrap;
 }
 
 .prompt-item {
@@ -93,8 +165,17 @@ h2 {
 
 .prompt-toolbar {
   display: flex;
+  align-items: center;
+  gap: 10px;
   justify-content: flex-end;
   margin-bottom: 8px;
+}
+
+.copy-prompt-feedback {
+  min-width: 96px;
+  font-size: 0.9rem;
+  color: #166534;
+  font-weight: 600;
 }
 
 .prompt-content {
@@ -206,84 +287,18 @@ button:hover {
   padding: 2px 6px;
 }
 
-.wizard-card {
+.workflow-guide-card {
   border-left: 4px solid #64748b;
 }
 
-.wizard-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.step-counter {
+.workflow-guide-list {
   margin: 0;
+  padding-left: 18px;
   color: #334e68;
-  font-weight: 600;
 }
 
-.phase-badge {
-  border-radius: 999px;
-  padding: 4px 10px;
-  font-size: 12px;
-  font-weight: 700;
-  border: 1px solid transparent;
-}
-
-.phase-badge.gpt {
-  background: #ecfeff;
-  color: #0e7490;
-  border-color: #a5f3fc;
-}
-
-.phase-badge.agent {
-  background: #eef2ff;
-  color: #4338ca;
-  border-color: #c7d2fe;
-}
-
-.step-hint {
-  margin-top: 0;
-  color: #486581;
-}
-
-.progress-track {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin: 12px 0 14px;
-}
-
-.progress-step {
-  flex: 1 1 2.5rem;
-  min-width: 2.25rem;
-  max-width: 3.5rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  text-align: center;
-  font-size: 12px;
-  padding: 6px 0;
-  background: #f8fafc;
-  color: #334155;
-}
-
-.progress-step.active {
-  border-color: #2563eb;
-  background: #dbeafe;
-  color: #1e3a8a;
-  font-weight: 700;
-}
-
-.progress-step.done {
-  border-color: #16a34a;
-  background: #dcfce7;
-  color: #166534;
-  font-weight: 600;
-}
-
-.nav-row {
-  flex-wrap: wrap;
+.workflow-guide-list li + li {
+  margin-top: 6px;
 }
 
 /* Agent-Handover: kombinierter Input */
@@ -301,6 +316,12 @@ button:hover {
   border-radius: 4px;
   padding: 2px 6px;
   font-size: 0.92em;
+}
+
+.context-location-hint {
+  margin-top: 0;
+  color: #5f6c7b;
+  font-size: 0.9rem;
 }
 
 .handover-recommendation-box {
@@ -416,6 +437,25 @@ button:hover {
 .agent-input-hint.is-error {
   color: #b42318;
   font-weight: 600;
+}
+
+.next-step-box {
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  border: 1px solid #d1fae5;
+  border-radius: 8px;
+  background: #ecfdf5;
+  color: #065f46;
+}
+
+.next-step-box h3 {
+  margin: 0 0 6px;
+  font-size: 1rem;
+}
+
+.next-step-box ol {
+  margin: 0;
+  padding-left: 18px;
 }
 
 .agent-combined-output {
