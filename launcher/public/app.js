@@ -8,6 +8,9 @@ const statusMessage = document.getElementById("status-message");
 const projectNameInput = document.getElementById("project-name");
 const targetDirInput = document.getElementById("target-dir");
 const createProjectBtn = document.getElementById("create-project-btn");
+const openExistingBtn = document.getElementById("open-existing-btn");
+const cancelOpenExistingBtn = document.getElementById("cancel-open-existing-btn");
+const existingProjectActions = document.getElementById("existing-project-actions");
 const projectCreateResult = document.getElementById("project-create-result");
 const projectNameError = document.getElementById("project-name-error");
 const targetDirError = document.getElementById("target-dir-error");
@@ -49,10 +52,21 @@ let gptActiveIndex = 0;
 let gptCompleted = [false, false, false, false, false];
 let gptExpandedIndex = 0;
 let activeProjectPath = "";
+let pendingExistingProject = null;
 
 function setStatus(message, isError = false) {
   statusMessage.textContent = message;
   statusMessage.style.color = isError ? "#b42318" : "#334e68";
+}
+
+function setExistingProjectPrompt(visible, projectPathValue = "") {
+  if (!existingProjectActions) return;
+  existingProjectActions.classList.toggle("is-hidden", !visible);
+  if (!visible) {
+    pendingExistingProject = null;
+    return;
+  }
+  pendingExistingProject = { projectPath: projectPathValue };
 }
 
 function updateGptFlowHint(promptPathValue) {
@@ -238,6 +252,15 @@ async function fetchJson(url, options = {}) {
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(data.error || "Unbekannter Fehler");
   return data;
+}
+
+async function detectExistingProject(projectPathValue, projectName, targetDir) {
+  const result = await fetchJson("/api/project/check", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ projectName, targetDir })
+  });
+  return Boolean(result.exists) && String(result.projectPath || "") === String(projectPathValue || "");
 }
 
 function updateHandoverAgentDisplay() {
@@ -560,10 +583,19 @@ async function createProject() {
   }
   const projectName = projectNameInput.value.trim();
   const targetDir = targetDirInput.value.trim();
+  const projectPathCandidate = normalizeProjectPath(targetDir, projectName);
   localStorage.setItem("gs.targetDir", targetDir);
   createProjectBtn.disabled = true;
+  setExistingProjectPrompt(false);
   projectCreateResult.textContent = "Projekt wird angelegt...";
   try {
+    const exists = await detectExistingProject(projectPathCandidate, projectName, targetDir);
+    if (exists) {
+      projectCreateResult.textContent = "Projekt existiert bereits.";
+      setExistingProjectPrompt(true, projectPathCandidate);
+      setStatus("Bestehendes Projekt erkannt. Du kannst es jetzt öffnen.");
+      return;
+    }
     const result = await fetchJson("/api/project/create", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -606,6 +638,51 @@ async function loadContext() {
   }
 }
 
+async function loadContextForProjectOpen() {
+  const res = await fetch("/api/context");
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    contextInput.value = "";
+    state.contextSaved = false;
+    await refreshHandoverContextState();
+    return false;
+  }
+  contextInput.value = data.content || "";
+  await refreshHandoverContextState();
+  return Boolean((data.content || "").trim());
+}
+
+async function openExistingProject() {
+  if (!pendingExistingProject) {
+    setStatus("Kein bestehendes Projekt zum Öffnen ausgewählt.", true);
+    return;
+  }
+  const projectName = projectNameInput.value.trim();
+  const targetDir = targetDirInput.value.trim();
+  const result = await fetchJson("/api/project/open", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ projectName, targetDir })
+  });
+  switchActiveProject(result.projectPath);
+  setExistingProjectPrompt(false);
+  const hasContext = await loadContextForProjectOpen();
+  if (!hasContext) {
+    setStatus("Projekt geöffnet. Kein Projektkontext vorhanden - bitte GPT-Workflow durchführen.");
+  } else {
+    setStatus("Projekt geöffnet. GPT-Stand und Kontext wurden geladen.");
+  }
+  projectCreateResult.textContent = [
+    "Projekt geöffnet.",
+    "",
+    `Pfad: ${result.projectPath}`,
+    "- GPT-Stepper-Stand wurde projektspezifisch geladen.",
+    hasContext
+      ? "- Kontext aus .goldstandard/context.txt wurde geladen."
+      : "- Kein Projektkontext vorhanden - bitte GPT-Workflow durchführen."
+  ].join("\n");
+}
+
 function setupDefaults() {
   localStorage.removeItem(LEGACY_GPT_WIZARD_KEY);
   const savedTarget = localStorage.getItem("gs.targetDir");
@@ -619,19 +696,16 @@ function setupDefaults() {
   }
 }
 
-function syncProjectScopedGptStateFromForm() {
-  const nextPath = normalizeProjectPath(targetDirInput.value, projectNameInput.value);
-  if (!nextPath || nextPath === activeProjectPath) return;
-  switchActiveProject(nextPath);
-}
-
 saveContextBtn.addEventListener("click", () => saveContext().catch((e) => setStatus(e.message, true)));
 loadContextBtn.addEventListener("click", () => loadContext().catch((e) => setStatus(e.message, true)));
 createProjectBtn.addEventListener("click", () => createProject().catch((e) => setStatus(e.message, true)));
 buildAgentInputBtn.addEventListener("click", () => buildFullAgentInput().catch((e) => setStatus(e.message, true)));
 copyAgentInputBtn.addEventListener("click", () => copyFullAgentInput().catch((e) => setStatus(e.message, true)));
-projectNameInput.addEventListener("change", syncProjectScopedGptStateFromForm);
-targetDirInput.addEventListener("change", syncProjectScopedGptStateFromForm);
+openExistingBtn.addEventListener("click", () => openExistingProject().catch((e) => setStatus(e.message, true)));
+cancelOpenExistingBtn.addEventListener("click", () => {
+  setExistingProjectPrompt(false);
+  projectCreateResult.textContent = "Öffnen abgebrochen. Passe Name oder Zielpfad an oder lege ein neues Projekt an.";
+});
 
 async function init() {
   setupDefaults();
