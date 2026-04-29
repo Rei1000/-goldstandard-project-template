@@ -106,6 +106,23 @@ function resolveProjectPath(projectName, targetDir) {
   return path.join(path.resolve(safeTargetDir), safeProjectName);
 }
 
+function listProjectsInTargetDir(targetDir) {
+  const safeTargetDir = typeof targetDir === "string" ? targetDir.trim() : "";
+  if (!safeTargetDir || !path.isAbsolute(safeTargetDir)) return null;
+  const resolvedTarget = path.resolve(safeTargetDir);
+  if (!fs.existsSync(resolvedTarget) || !fs.statSync(resolvedTarget).isDirectory()) {
+    return [];
+  }
+  return fs
+    .readdirSync(resolvedTarget, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => ({
+      name: entry.name,
+      path: path.join(resolvedTarget, entry.name)
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name, "de"));
+}
+
 const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, `http://${req.headers.host}`);
@@ -304,6 +321,24 @@ const server = http.createServer(async (req, res) => {
         projectPath,
         contextLoaded
       });
+      return;
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/projects/list") {
+      const rawBody = await readBody(req);
+      let parsed = {};
+      try {
+        parsed = JSON.parse(rawBody || "{}");
+      } catch {
+        sendJson(res, 400, { error: "Ungültiges JSON." });
+        return;
+      }
+      const projects = listProjectsInTargetDir(parsed.targetDir);
+      if (projects === null) {
+        sendJson(res, 400, { error: "Ungültiger Zielpfad." });
+        return;
+      }
+      sendJson(res, 200, { projects });
       return;
     }
 

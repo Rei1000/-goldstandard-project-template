@@ -7,6 +7,9 @@ const loadContextBtn = document.getElementById("load-context");
 const statusMessage = document.getElementById("status-message");
 const projectNameInput = document.getElementById("project-name");
 const targetDirInput = document.getElementById("target-dir");
+const refreshProjectListBtn = document.getElementById("refresh-project-list-btn");
+const projectSelectionList = document.getElementById("project-selection-list");
+const projectSelectionEmpty = document.getElementById("project-selection-empty");
 const createProjectBtn = document.getElementById("create-project-btn");
 const openExistingBtn = document.getElementById("open-existing-btn");
 const cancelOpenExistingBtn = document.getElementById("cancel-open-existing-btn");
@@ -53,6 +56,7 @@ let gptCompleted = [false, false, false, false, false];
 let gptExpandedIndex = 0;
 let activeProjectPath = "";
 let pendingExistingProject = null;
+let availableProjects = [];
 
 function setStatus(message, isError = false) {
   statusMessage.textContent = message;
@@ -70,6 +74,18 @@ function setExistingProjectPrompt(visible, projectPathValue = "") {
     return;
   }
   pendingExistingProject = { projectPath: projectPathValue };
+}
+
+function splitProjectPath(projectPathValue) {
+  const value = String(projectPathValue || "").trim();
+  if (!value) return { projectName: "", targetDir: "" };
+  const clean = value.replace(/[\\/]+$/, "");
+  const idx = Math.max(clean.lastIndexOf("/"), clean.lastIndexOf("\\"));
+  if (idx < 0) return { projectName: clean, targetDir: "" };
+  return {
+    projectName: clean.slice(idx + 1),
+    targetDir: clean.slice(0, idx)
+  };
 }
 
 function updateGptFlowHint(promptPathValue) {
@@ -164,10 +180,17 @@ function setActiveProjectPath(projectPathValue) {
   if (activeProjectPath) {
     localStorage.setItem(ACTIVE_PROJECT_PATH_KEY, activeProjectPath);
     state.projectCreated = true;
+    const parts = splitProjectPath(activeProjectPath);
+    if (parts.projectName) projectNameInput.value = parts.projectName;
+    if (parts.targetDir) {
+      targetDirInput.value = parts.targetDir;
+      localStorage.setItem("gs.targetDir", parts.targetDir);
+    }
   } else {
     localStorage.removeItem(ACTIVE_PROJECT_PATH_KEY);
     state.projectCreated = false;
   }
+  renderProjectSelectionList();
 }
 
 function switchActiveProject(projectPathValue) {
@@ -273,6 +296,58 @@ async function detectExistingProject(projectPathValue, projectName, targetDir) {
     body: JSON.stringify({ projectName, targetDir })
   });
   return Boolean(result.exists) && String(result.projectPath || "") === String(projectPathValue || "");
+}
+
+function renderProjectSelectionList() {
+  if (!projectSelectionList) return;
+  projectSelectionList.innerHTML = "";
+  if (!availableProjects.length) {
+    projectSelectionEmpty.classList.remove("is-hidden");
+    return;
+  }
+  projectSelectionEmpty.classList.add("is-hidden");
+  for (const project of availableProjects) {
+    const li = document.createElement("li");
+    li.className = "project-selection-item";
+    if (project.path === activeProjectPath) li.classList.add("is-active");
+    li.innerHTML = `
+      <div>
+        <p class="project-selection-name">${project.name}</p>
+        <p class="project-selection-path">${project.path}</p>
+      </div>
+    `;
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = project.path === activeProjectPath ? "secondary" : "";
+    btn.textContent = project.path === activeProjectPath ? "Aktiv" : "Projekt öffnen";
+    btn.disabled = project.path === activeProjectPath;
+    btn.addEventListener("click", () => {
+      openExistingProjectByPath(project.path).catch((e) => setStatus(e.message, true));
+    });
+    li.appendChild(btn);
+    projectSelectionList.appendChild(li);
+  }
+}
+
+async function refreshProjectSelectionList() {
+  const targetDir = targetDirInput.value.trim();
+  if (!targetDir || !isLikelyAbsolutePath(targetDir)) {
+    availableProjects = [];
+    renderProjectSelectionList();
+    return;
+  }
+  try {
+    const result = await fetchJson("/api/projects/list", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ targetDir })
+    });
+    availableProjects = Array.isArray(result.projects) ? result.projects : [];
+    renderProjectSelectionList();
+  } catch {
+    availableProjects = [];
+    renderProjectSelectionList();
+  }
 }
 
 function updateHandoverAgentDisplay() {
@@ -619,6 +694,7 @@ async function createProject() {
     saveGptWizardState(activeProjectPath);
     renderGptWizard();
     updateStepper();
+    await refreshProjectSelectionList();
     setStatus("Projektanlage erfolgreich. Weiter mit GPT-Phase.");
   } catch (error) {
     projectCreateResult.textContent = `Fehler: ${error.message}`;
@@ -707,6 +783,19 @@ async function openExistingProject() {
   ].join("\n");
 }
 
+async function openExistingProjectByPath(projectPathValue) {
+  const parts = splitProjectPath(projectPathValue);
+  if (!parts.projectName || !parts.targetDir) {
+    setStatus("Ungültiger Projektpfad.", true);
+    return;
+  }
+  projectNameInput.value = parts.projectName;
+  targetDirInput.value = parts.targetDir;
+  pendingExistingProject = { projectPath: projectPathValue };
+  await openExistingProject();
+  await refreshProjectSelectionList();
+}
+
 function setupDefaults() {
   localStorage.removeItem(LEGACY_GPT_WIZARD_KEY);
   const savedTarget = localStorage.getItem("gs.targetDir");
@@ -730,10 +819,13 @@ cancelOpenExistingBtn.addEventListener("click", () => {
   setExistingProjectPrompt(false);
   projectCreateResult.textContent = "Öffnen abgebrochen. Du kannst jetzt ein neues Projekt anlegen.";
 });
+refreshProjectListBtn.addEventListener("click", () => refreshProjectSelectionList().catch((e) => setStatus(e.message, true)));
+targetDirInput.addEventListener("blur", () => refreshProjectSelectionList().catch(() => {}));
 
 async function init() {
   setupDefaults();
   await loadPrompts();
+  await refreshProjectSelectionList();
   updateHandoverAgentDisplay();
   await refreshHandoverContextState();
   updateGptFlowHint(GPT_PROMPTS[Math.min(gptActiveIndex, GPT_PROMPTS.length - 1)]?.path || "");
