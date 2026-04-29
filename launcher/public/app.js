@@ -7,7 +7,6 @@ const loadContextBtn = document.getElementById("load-context");
 const statusMessage = document.getElementById("status-message");
 const projectNameInput = document.getElementById("project-name");
 const targetDirInput = document.getElementById("target-dir");
-const refreshProjectListBtn = document.getElementById("refresh-project-list-btn");
 const projectSelectionList = document.getElementById("project-selection-list");
 const projectSelectionEmpty = document.getElementById("project-selection-empty");
 const createProjectBtn = document.getElementById("create-project-btn");
@@ -30,6 +29,7 @@ const WORKFLOW_PROMPT_PATH = "prompts/agent/01-agent-run-workflow.md";
 const GPT_WIZARD_STORAGE_PREFIX = "gs.gptWizardState:";
 const ACTIVE_PROJECT_PATH_KEY = "gs.activeProjectPath";
 const LEGACY_GPT_WIZARD_KEY = "gs.gptWizardState";
+const KNOWN_PROJECTS_KEY = "gs.knownProjects";
 const GPT_PROMPTS = [
   { path: "prompts/gpt/01-gpt-project-start.md", title: "Prompt 01" },
   { path: "prompts/gpt/02-gpt-project-definition.md", title: "Prompt 02" },
@@ -56,7 +56,8 @@ let gptCompleted = [false, false, false, false, false];
 let gptExpandedIndex = 0;
 let activeProjectPath = "";
 let pendingExistingProject = null;
-let availableProjects = [];
+let knownProjects = [];
+let knownProjectsValidating = false;
 
 function setStatus(message, isError = false) {
   statusMessage.textContent = message;
@@ -86,6 +87,40 @@ function splitProjectPath(projectPathValue) {
     projectName: clean.slice(idx + 1),
     targetDir: clean.slice(0, idx)
   };
+}
+
+function loadKnownProjects() {
+  const raw = localStorage.getItem(KNOWN_PROJECTS_KEY);
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((item) => item && typeof item.path === "string" && typeof item.name === "string")
+      .map((item) => ({ name: item.name.trim(), path: item.path.trim() }))
+      .filter((item) => item.name && item.path);
+  } catch {
+    return [];
+  }
+}
+
+function saveKnownProjects(projects) {
+  localStorage.setItem(KNOWN_PROJECTS_KEY, JSON.stringify(projects));
+}
+
+function rememberProject(projectPathValue) {
+  const parts = splitProjectPath(projectPathValue);
+  if (!parts.projectName || !projectPathValue) return;
+  const normalizedPath = String(projectPathValue).trim();
+  const deduped = knownProjects.filter((item) => item.path !== normalizedPath);
+  knownProjects = [{ name: parts.projectName, path: normalizedPath }, ...deduped];
+  saveKnownProjects(knownProjects);
+}
+
+function isKnownProject(projectPathValue) {
+  const normalizedPath = String(projectPathValue || "").trim();
+  if (!normalizedPath) return false;
+  return knownProjects.some((item) => item.path === normalizedPath);
 }
 
 function updateGptFlowHint(promptPathValue) {
@@ -301,12 +336,18 @@ async function detectExistingProject(projectPathValue, projectName, targetDir) {
 function renderProjectSelectionList() {
   if (!projectSelectionList) return;
   projectSelectionList.innerHTML = "";
-  if (!availableProjects.length) {
+  if (knownProjectsValidating) {
     projectSelectionEmpty.classList.remove("is-hidden");
+    projectSelectionEmpty.textContent = "Bekannte Projekte werden geprüft ...";
+    return;
+  }
+  if (!knownProjects.length) {
+    projectSelectionEmpty.classList.remove("is-hidden");
+    projectSelectionEmpty.innerHTML = "Keine bekannten Projekte.<br />→ Erstelle ein neues Projekt";
     return;
   }
   projectSelectionEmpty.classList.add("is-hidden");
-  for (const project of availableProjects) {
+  for (const project of knownProjects) {
     const li = document.createElement("li");
     li.className = "project-selection-item";
     if (project.path === activeProjectPath) li.classList.add("is-active");
@@ -329,24 +370,35 @@ function renderProjectSelectionList() {
   }
 }
 
-async function refreshProjectSelectionList() {
-  const targetDir = targetDirInput.value.trim();
-  if (!targetDir || !isLikelyAbsolutePath(targetDir)) {
-    availableProjects = [];
-    renderProjectSelectionList();
-    return;
+async function validateKnownProjects({ showCleanupStatus = false } = {}) {
+  knownProjectsValidating = true;
+  renderProjectSelectionList();
+  const previous = [...knownProjects];
+  const valid = [];
+  for (const project of previous) {
+    const parts = splitProjectPath(project.path);
+    if (!parts.projectName || !parts.targetDir) continue;
+    try {
+      const exists = await detectExistingProject(project.path, parts.projectName, parts.targetDir);
+      if (exists) valid.push(project);
+    } catch {
+      // Ignore unreadable entries; keep list robust.
+    }
   }
-  try {
-    const result = await fetchJson("/api/projects/list", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ targetDir })
-    });
-    availableProjects = Array.isArray(result.projects) ? result.projects : [];
-    renderProjectSelectionList();
-  } catch {
-    availableProjects = [];
-    renderProjectSelectionList();
+  const removedCount = previous.length - valid.length;
+  knownProjects = valid;
+  saveKnownProjects(knownProjects);
+  if (activeProjectPath && !knownProjects.some((item) => item.path === activeProjectPath)) {
+    setActiveProjectPath("");
+    resetGptWizardState();
+    renderGptWizard();
+    updateStepper();
+    setStatus("Aktives Projekt wurde lokal nicht gefunden und zurückgesetzt.", true);
+  }
+  knownProjectsValidating = false;
+  renderProjectSelectionList();
+  if (showCleanupStatus && removedCount > 0) {
+    setStatus("Ein oder mehrere bekannte Projekte wurden lokal nicht gefunden und aus der Liste entfernt.");
   }
 }
 
@@ -678,7 +730,13 @@ async function createProject() {
   try {
     const exists = await detectExistingProject(projectPathCandidate, projectName, targetDir);
     if (exists) {
-      projectCreateResult.textContent = "Projekt existiert bereits.";
+      const alreadyKnown = isKnownProject(projectPathCandidate);
+      projectCreateResult.textContent = alreadyKnown
+        ? "Projekt existiert bereits."
+        : [
+            "Projekt existiert bereits, ist aber noch nicht in der Projektliste.",
+            "Öffne es einmal, um es zu den bekannten Projekten hinzuzufügen."
+          ].join("\n");
       setExistingProjectPrompt(true, projectPathCandidate);
       setStatus("Bestehendes Projekt erkannt. Du kannst es jetzt öffnen.");
       return;
@@ -689,12 +747,14 @@ async function createProject() {
       body: JSON.stringify({ projectName, targetDir })
     });
     projectCreateResult.textContent = formatProjectCreateSuccess(result);
-    setActiveProjectPath(result.projectPath || normalizeProjectPath(targetDir, projectName));
+    const createdPath = result.projectPath || normalizeProjectPath(targetDir, projectName);
+    setActiveProjectPath(createdPath);
+    rememberProject(createdPath);
     resetGptWizardState();
     saveGptWizardState(activeProjectPath);
     renderGptWizard();
     updateStepper();
-    await refreshProjectSelectionList();
+    renderProjectSelectionList();
     setStatus("Projektanlage erfolgreich. Weiter mit GPT-Phase.");
   } catch (error) {
     projectCreateResult.textContent = `Fehler: ${error.message}`;
@@ -753,6 +813,8 @@ async function openExistingProject() {
     body: JSON.stringify({ projectName, targetDir })
   });
   setActiveProjectPath(result.projectPath);
+  rememberProject(result.projectPath);
+  renderProjectSelectionList();
   setExistingProjectPrompt(false);
   const hasContext = await loadContextForProjectOpen();
   if (hasContext) {
@@ -789,15 +851,24 @@ async function openExistingProjectByPath(projectPathValue) {
     setStatus("Ungültiger Projektpfad.", true);
     return;
   }
+  const exists = await detectExistingProject(projectPathValue, parts.projectName, parts.targetDir).catch(() => false);
+  if (!exists) {
+    knownProjects = knownProjects.filter((item) => item.path !== projectPathValue);
+    saveKnownProjects(knownProjects);
+    renderProjectSelectionList();
+    setStatus("Projekt wurde lokal nicht gefunden und aus der Liste entfernt.", true);
+    return;
+  }
   projectNameInput.value = parts.projectName;
   targetDirInput.value = parts.targetDir;
   pendingExistingProject = { projectPath: projectPathValue };
   await openExistingProject();
-  await refreshProjectSelectionList();
+  renderProjectSelectionList();
 }
 
 function setupDefaults() {
   localStorage.removeItem(LEGACY_GPT_WIZARD_KEY);
+  knownProjects = loadKnownProjects();
   const savedTarget = localStorage.getItem("gs.targetDir");
   targetDirInput.value = savedTarget || "/Users/<dein-name>/Projects";
   const initialProjectPath = getActiveProjectPath();
@@ -819,13 +890,12 @@ cancelOpenExistingBtn.addEventListener("click", () => {
   setExistingProjectPrompt(false);
   projectCreateResult.textContent = "Öffnen abgebrochen. Du kannst jetzt ein neues Projekt anlegen.";
 });
-refreshProjectListBtn.addEventListener("click", () => refreshProjectSelectionList().catch((e) => setStatus(e.message, true)));
-targetDirInput.addEventListener("blur", () => refreshProjectSelectionList().catch(() => {}));
 
 async function init() {
   setupDefaults();
   await loadPrompts();
-  await refreshProjectSelectionList();
+  await validateKnownProjects({ showCleanupStatus: true });
+  renderProjectSelectionList();
   updateHandoverAgentDisplay();
   await refreshHandoverContextState();
   updateGptFlowHint(GPT_PROMPTS[Math.min(gptActiveIndex, GPT_PROMPTS.length - 1)]?.path || "");

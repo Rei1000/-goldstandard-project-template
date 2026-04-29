@@ -16,20 +16,6 @@
         </p>
       </header>
 
-      <section class="card project-selection-card">
-        <h2>Projekt auswählen</h2>
-        <p class="step-intro">Bestehendes Projekt direkt öffnen oder danach ein neues Projekt erstellen.</p>
-        <div class="button-row">
-          <button id="refresh-project-list-btn" class="secondary" type="button">Projektliste aktualisieren</button>
-        </div>
-        <ul id="project-selection-list" class="project-selection-list"></ul>
-        <p id="project-selection-empty" class="project-selection-empty is-hidden">
-          Keine Projekte gefunden.
-          <br />
-          → Erstelle ein neues Projekt
-        </p>
-      </section>
-
       <section class="card stepper-card">
         <h2>Workflow</h2>
         <ol id="wizard-stepper" class="wizard-stepper">
@@ -43,12 +29,22 @@
 
       <section id="step-project" class="card wizard-step">
         <div class="step-head">
-          <h2>Schritt 1: Projekt lokal anlegen</h2>
+          <h2>Schritt 1: Projekt auswählen oder anlegen</h2>
           <span id="badge-project" class="step-badge">Aktiv</span>
+        </div>
+        <div class="known-projects-box">
+          <h3>Bekannte Projekte</h3>
+          <ul id="project-selection-list" class="project-selection-list"></ul>
+          <p id="project-selection-empty" class="project-selection-empty is-hidden">
+            Keine bekannten Projekte.
+            <br />
+            → Erstelle ein neues Projekt
+          </p>
         </div>
         <p class="step-intro">
           Erstelle zuerst das Zielprojekt. Kontext ist hier noch nicht erforderlich und wird später ergänzt.
         </p>
+        <h3>Neues Projekt anlegen</h3>
         <div class="project-form-grid">
           <label for="project-name">Projektname</label>
           <input id="project-name" type="text" placeholder="z. B. acme-platform" />
