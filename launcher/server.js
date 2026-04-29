@@ -98,6 +98,14 @@ function defaultProgress() {
   };
 }
 
+function resolveProjectPath(projectName, targetDir) {
+  const safeProjectName = typeof projectName === "string" ? projectName.trim() : "";
+  const safeTargetDir = typeof targetDir === "string" ? targetDir.trim() : "";
+  if (!safeProjectName || !safeTargetDir) return "";
+  if (!path.isAbsolute(safeTargetDir)) return "";
+  return path.join(path.resolve(safeTargetDir), safeProjectName);
+}
+
 const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, `http://${req.headers.host}`);
@@ -237,6 +245,65 @@ const server = http.createServer(async (req, res) => {
       });
 
       sendJson(res, 200, result);
+      return;
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/project/check") {
+      const rawBody = await readBody(req);
+      let parsed = {};
+      try {
+        parsed = JSON.parse(rawBody || "{}");
+      } catch {
+        sendJson(res, 400, { error: "Ungültiges JSON." });
+        return;
+      }
+
+      const projectPath = resolveProjectPath(parsed.projectName, parsed.targetDir);
+      if (!projectPath) {
+        sendJson(res, 400, { error: "Ungültiger Projektname oder Zielpfad." });
+        return;
+      }
+      const exists = fs.existsSync(projectPath) && fs.statSync(projectPath).isDirectory();
+      sendJson(res, 200, { exists, projectPath });
+      return;
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/project/open") {
+      const rawBody = await readBody(req);
+      let parsed = {};
+      try {
+        parsed = JSON.parse(rawBody || "{}");
+      } catch {
+        sendJson(res, 400, { error: "Ungültiges JSON." });
+        return;
+      }
+
+      const projectPath = resolveProjectPath(parsed.projectName, parsed.targetDir);
+      if (!projectPath) {
+        sendJson(res, 400, { error: "Ungültiger Projektname oder Zielpfad." });
+        return;
+      }
+      if (!fs.existsSync(projectPath) || !fs.statSync(projectPath).isDirectory()) {
+        sendJson(res, 404, { error: "Projektordner wurde nicht gefunden." });
+        return;
+      }
+
+      const projectContextPath = path.join(projectPath, ".goldstandard", "context.txt");
+      let contextLoaded = false;
+      if (fs.existsSync(projectContextPath) && fs.statSync(projectContextPath).isFile()) {
+        const content = fs.readFileSync(projectContextPath, "utf8");
+        fs.mkdirSync(CONTEXT_DIR, { recursive: true });
+        fs.writeFileSync(CONTEXT_FILE, content, "utf8");
+        contextLoaded = Boolean(content.trim());
+      } else if (fs.existsSync(CONTEXT_FILE)) {
+        fs.rmSync(CONTEXT_FILE, { force: true });
+      }
+
+      sendJson(res, 200, {
+        ok: true,
+        projectPath,
+        contextLoaded
+      });
       return;
     }
 
