@@ -21,6 +21,9 @@ const cursorStepHint = document.getElementById("cursor-step-hint");
 
 const TASK_FRAME_REF = "prompts/agent/00-agent-task-frame.md";
 const WORKFLOW_PROMPT_PATH = "prompts/agent/01-agent-run-workflow.md";
+const GPT_WIZARD_STORAGE_PREFIX = "gs.gptWizardState:";
+const ACTIVE_PROJECT_PATH_KEY = "gs.activeProjectPath";
+const LEGACY_GPT_WIZARD_KEY = "gs.gptWizardState";
 const GPT_PROMPTS = [
   { path: "prompts/gpt/01-gpt-project-start.md", title: "Prompt 01" },
   { path: "prompts/gpt/02-gpt-project-definition.md", title: "Prompt 02" },
@@ -45,6 +48,7 @@ let gptPromptContentByPath = {};
 let gptActiveIndex = 0;
 let gptCompleted = [false, false, false, false, false];
 let gptExpandedIndex = 0;
+let activeProjectPath = "";
 
 function setStatus(message, isError = false) {
   statusMessage.textContent = message;
@@ -72,6 +76,91 @@ function updateGptFlowHint(promptPathValue) {
     return;
   }
   gptFlowHint.textContent = "Prompt-Wizard geladen. Nur der aktuell aktive Prompt ist ausführbar.";
+}
+
+function normalizeProjectPath(targetDirValue, projectNameValue) {
+  const targetDir = String(targetDirValue || "").trim();
+  const projectName = String(projectNameValue || "").trim();
+  if (!targetDir || !projectName) return "";
+  const cleanTarget = targetDir.replace(/[\\/]+$/, "");
+  return `${cleanTarget}/${projectName}`;
+}
+
+function getActiveProjectPath() {
+  const fromStorage = localStorage.getItem(ACTIVE_PROJECT_PATH_KEY) || "";
+  if (fromStorage.trim()) return fromStorage.trim();
+  return normalizeProjectPath(targetDirInput.value, projectNameInput.value);
+}
+
+function buildGptWizardStorageKey(projectPathValue) {
+  const pathValue = String(projectPathValue || "").trim();
+  if (!pathValue) return "";
+  return `${GPT_WIZARD_STORAGE_PREFIX}${pathValue}`;
+}
+
+function resetGptWizardState() {
+  gptPromptContentByPath = {};
+  gptActiveIndex = 0;
+  gptCompleted = Array.from({ length: GPT_PROMPTS.length }, () => false);
+  gptExpandedIndex = 0;
+  state.gptCompletedCount = 0;
+  if (gptCompleteHint) gptCompleteHint.classList.add("is-hidden");
+}
+
+function saveGptWizardState(projectPathValue = activeProjectPath) {
+  const storageKey = buildGptWizardStorageKey(projectPathValue);
+  if (!storageKey) return;
+  localStorage.setItem(
+    storageKey,
+    JSON.stringify({ completed: gptCompleted, activeIndex: gptActiveIndex, expandedIndex: gptExpandedIndex })
+  );
+}
+
+function loadGptWizardState(projectPathValue = activeProjectPath) {
+  resetGptWizardState();
+  const storageKey = buildGptWizardStorageKey(projectPathValue);
+  if (!storageKey) return;
+  const raw = localStorage.getItem(storageKey);
+  if (!raw) return;
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed.completed) && parsed.completed.length === GPT_PROMPTS.length) {
+      gptCompleted = parsed.completed.map(Boolean);
+    }
+    if (Number.isInteger(parsed.activeIndex)) {
+      gptActiveIndex = Math.min(Math.max(parsed.activeIndex, 0), GPT_PROMPTS.length - 1);
+    }
+    if (Number.isInteger(parsed.expandedIndex)) {
+      gptExpandedIndex = parsed.expandedIndex;
+    }
+  } catch {
+    resetGptWizardState();
+  }
+  state.gptCompletedCount = gptCompleted.filter(Boolean).length;
+  if (state.gptCompletedCount === GPT_PROMPTS.length && gptCompleteHint) {
+    gptCompleteHint.classList.remove("is-hidden");
+  }
+}
+
+function setActiveProjectPath(projectPathValue) {
+  activeProjectPath = String(projectPathValue || "").trim();
+  if (activeProjectPath) {
+    localStorage.setItem(ACTIVE_PROJECT_PATH_KEY, activeProjectPath);
+    state.projectCreated = true;
+  } else {
+    localStorage.removeItem(ACTIVE_PROJECT_PATH_KEY);
+    state.projectCreated = false;
+  }
+}
+
+function switchActiveProject(projectPathValue) {
+  const nextPath = String(projectPathValue || "").trim();
+  if (!nextPath) return;
+  setActiveProjectPath(nextPath);
+  loadGptWizardState(nextPath);
+  updateGptFlowHint(GPT_PROMPTS[Math.min(gptActiveIndex, GPT_PROMPTS.length - 1)]?.path || "");
+  renderGptWizard();
+  updateStepper();
 }
 
 function inferStepState(stepId) {
@@ -246,10 +335,7 @@ function completeGptPrompt(idx) {
     if (gptCompleteHint) gptCompleteHint.classList.remove("is-hidden");
     setStatus("GPT-Phase abgeschlossen. Weiter mit Schritt 3: Projektkontext speichern.");
   }
-  localStorage.setItem(
-    "gs.gptWizardState",
-    JSON.stringify({ completed: gptCompleted, activeIndex: gptActiveIndex, expandedIndex: gptExpandedIndex })
-  );
+  saveGptWizardState();
   updateStepper();
   renderGptWizard();
 }
@@ -257,10 +343,7 @@ function completeGptPrompt(idx) {
 function togglePromptPanel(idx) {
   if (idx > gptActiveIndex && !gptCompleted[idx]) return;
   gptExpandedIndex = gptExpandedIndex === idx ? -1 : idx;
-  localStorage.setItem(
-    "gs.gptWizardState",
-    JSON.stringify({ completed: gptCompleted, activeIndex: gptActiveIndex, expandedIndex: gptExpandedIndex })
-  );
+  saveGptWizardState();
   renderGptWizard();
 }
 
@@ -487,7 +570,10 @@ async function createProject() {
       body: JSON.stringify({ projectName, targetDir })
     });
     projectCreateResult.textContent = formatProjectCreateSuccess(result);
-    state.projectCreated = true;
+    setActiveProjectPath(result.projectPath || normalizeProjectPath(targetDir, projectName));
+    resetGptWizardState();
+    saveGptWizardState(activeProjectPath);
+    renderGptWizard();
     updateStepper();
     setStatus("Projektanlage erfolgreich. Weiter mit GPT-Phase.");
   } catch (error) {
@@ -521,29 +607,22 @@ async function loadContext() {
 }
 
 function setupDefaults() {
+  localStorage.removeItem(LEGACY_GPT_WIZARD_KEY);
   const savedTarget = localStorage.getItem("gs.targetDir");
   targetDirInput.value = savedTarget || "/Users/<dein-name>/Projects";
-  const savedWizard = localStorage.getItem("gs.gptWizardState");
-  if (savedWizard) {
-    try {
-      const parsed = JSON.parse(savedWizard);
-      if (Array.isArray(parsed.completed) && parsed.completed.length === GPT_PROMPTS.length) {
-        gptCompleted = parsed.completed.map(Boolean);
-      }
-      if (Number.isInteger(parsed.activeIndex)) {
-        gptActiveIndex = Math.min(Math.max(parsed.activeIndex, 0), GPT_PROMPTS.length - 1);
-      }
-      if (Number.isInteger(parsed.expandedIndex)) {
-        gptExpandedIndex = parsed.expandedIndex;
-      }
-    } catch {
-      // ignore invalid local state
-    }
+  const initialProjectPath = getActiveProjectPath();
+  if (initialProjectPath) {
+    setActiveProjectPath(initialProjectPath);
+    loadGptWizardState(initialProjectPath);
+  } else {
+    resetGptWizardState();
   }
-  state.gptCompletedCount = gptCompleted.filter(Boolean).length;
-  if (state.gptCompletedCount === GPT_PROMPTS.length && gptCompleteHint) {
-    gptCompleteHint.classList.remove("is-hidden");
-  }
+}
+
+function syncProjectScopedGptStateFromForm() {
+  const nextPath = normalizeProjectPath(targetDirInput.value, projectNameInput.value);
+  if (!nextPath || nextPath === activeProjectPath) return;
+  switchActiveProject(nextPath);
 }
 
 saveContextBtn.addEventListener("click", () => saveContext().catch((e) => setStatus(e.message, true)));
@@ -551,6 +630,8 @@ loadContextBtn.addEventListener("click", () => loadContext().catch((e) => setSta
 createProjectBtn.addEventListener("click", () => createProject().catch((e) => setStatus(e.message, true)));
 buildAgentInputBtn.addEventListener("click", () => buildFullAgentInput().catch((e) => setStatus(e.message, true)));
 copyAgentInputBtn.addEventListener("click", () => copyFullAgentInput().catch((e) => setStatus(e.message, true)));
+projectNameInput.addEventListener("change", syncProjectScopedGptStateFromForm);
+targetDirInput.addEventListener("change", syncProjectScopedGptStateFromForm);
 
 async function init() {
   setupDefaults();
