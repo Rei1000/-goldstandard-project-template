@@ -62,6 +62,9 @@ function setStatus(message, isError = false) {
 function setExistingProjectPrompt(visible, projectPathValue = "") {
   if (!existingProjectActions) return;
   existingProjectActions.classList.toggle("is-hidden", !visible);
+  createProjectBtn.classList.toggle("is-hidden", visible);
+  createProjectBtn.dataset.forceDisabled = visible ? "true" : "false";
+  createProjectBtn.disabled = visible;
   if (!visible) {
     pendingExistingProject = null;
     return;
@@ -175,6 +178,15 @@ function switchActiveProject(projectPathValue) {
   updateGptFlowHint(GPT_PROMPTS[Math.min(gptActiveIndex, GPT_PROMPTS.length - 1)]?.path || "");
   renderGptWizard();
   updateStepper();
+}
+
+function markGptStepperCompletedFromContext() {
+  gptPromptContentByPath = {};
+  gptCompleted = Array.from({ length: GPT_PROMPTS.length }, () => true);
+  gptActiveIndex = GPT_PROMPTS.length - 1;
+  gptExpandedIndex = -1;
+  state.gptCompletedCount = GPT_PROMPTS.length;
+  if (gptCompleteHint) gptCompleteHint.classList.remove("is-hidden");
 }
 
 function inferStepState(stepId) {
@@ -664,22 +676,34 @@ async function openExistingProject() {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ projectName, targetDir })
   });
-  switchActiveProject(result.projectPath);
+  setActiveProjectPath(result.projectPath);
   setExistingProjectPrompt(false);
   const hasContext = await loadContextForProjectOpen();
-  if (!hasContext) {
-    setStatus("Projekt geöffnet. Kein Projektkontext vorhanden - bitte GPT-Workflow durchführen.");
+  if (hasContext) {
+    markGptStepperCompletedFromContext();
   } else {
-    setStatus("Projekt geöffnet. GPT-Stand und Kontext wurden geladen.");
+    resetGptWizardState();
+  }
+  saveGptWizardState(result.projectPath);
+  updateGptFlowHint(hasContext ? "" : GPT_PROMPTS[0].path);
+  renderGptWizard();
+  updateStepper();
+
+  if (!hasContext) {
+    setStatus("Projekt geöffnet. Dieses Projekt hat noch keinen gespeicherten Kontext.");
+  } else {
+    setStatus("Projekt geöffnet. Kontext gefunden - du kannst direkt ab Schritt 4 weiterarbeiten.");
   }
   projectCreateResult.textContent = [
     "Projekt geöffnet.",
     "",
     `Pfad: ${result.projectPath}`,
-    "- GPT-Stepper-Stand wurde projektspezifisch geladen.",
+    hasContext
+      ? "- Kontext vorhanden: GPT-Phase als abgeschlossen markiert."
+      : "- Dieses Projekt hat noch keinen gespeicherten Kontext.",
     hasContext
       ? "- Kontext aus .goldstandard/context.txt wurde geladen."
-      : "- Kein Projektkontext vorhanden - bitte GPT-Workflow durchführen."
+      : "→ Starte den GPT-Workflow erneut (ab Prompt 01)\nODER\n→ füge den finalen PROJEKTKONTEXT direkt in Schritt 3 ein"
   ].join("\n");
 }
 
@@ -704,7 +728,7 @@ copyAgentInputBtn.addEventListener("click", () => copyFullAgentInput().catch((e)
 openExistingBtn.addEventListener("click", () => openExistingProject().catch((e) => setStatus(e.message, true)));
 cancelOpenExistingBtn.addEventListener("click", () => {
   setExistingProjectPrompt(false);
-  projectCreateResult.textContent = "Öffnen abgebrochen. Passe Name oder Zielpfad an oder lege ein neues Projekt an.";
+  projectCreateResult.textContent = "Öffnen abgebrochen. Du kannst jetzt ein neues Projekt anlegen.";
 });
 
 async function init() {
